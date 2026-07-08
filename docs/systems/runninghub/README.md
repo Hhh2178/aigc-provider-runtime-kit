@@ -8,6 +8,8 @@ The RunningHub system provides reusable contracts and helpers for RunningHub AI 
 
 - Code: `packages/runninghub/src/`
 - Public exports: `packages/runninghub/src/index.ts`
+- API reference: `docs/api-reference.md`
+- Tests: `tests/runninghub.test.mjs`
 
 ## Runtime Shape
 
@@ -37,4 +39,5 @@ The RunningHub system provides reusable contracts and helpers for RunningHub AI 
 
 ```bash
 npm run type-check
+npm test
 ```

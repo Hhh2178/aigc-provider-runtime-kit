@@ -27,6 +27,9 @@ Before meaningful work, read:
 | Provider architecture | `docs/systems/providers/README.md` | Provider API or schema changes |
 | RunningHub architecture | `docs/systems/runninghub/README.md` | RH catalog/client/dispatch changes |
 | Harness checks | `docs/systems/harness/README.md` and `scripts/verify-harness.mjs` | Verification commands or required anchors change |
+| Public API reference | `docs/api-reference.md` | Entrypoints, exports, or runtime helpers change |
+| Public roadmap | `docs/roadmap.md` | Release line, deferred scope, or compatibility policy changes |
+| Public contribution and security rules | `CONTRIBUTING.md`, `SECURITY.md` | Contribution, vulnerability, or secret handling process changes |
 | Work evidence | `docs/logbooks/` | Any meaningful implementation or governance change |
 
 ## Safety Rules
@@ -51,6 +54,7 @@ Before claiming completion, run the relevant checks:
 ```bash
 npm run harness:verify:project
 npm run type-check
+npm test
 ```
 
 If dependencies are unavailable, state exactly which check could not run and why.

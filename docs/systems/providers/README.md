@@ -14,6 +14,8 @@ The Providers system defines framework-neutral contracts for AIGC provider confi
 
 - Code: `packages/core/src/`
 - Public docs: `README.md`
+- API reference: `docs/api-reference.md`
+- Tests: `tests/core.test.mjs`
 
 ## Interfaces
 
@@ -34,4 +36,5 @@ The Providers system defines framework-neutral contracts for AIGC provider confi
 
 ```bash
 npm run type-check
+npm test
 ```

@@ -2,6 +2,8 @@
 
 Reusable TypeScript runtime primitives for AIGC products that need to manage multiple model providers and RunningHub entries without rebuilding the same provider configuration layer for every project.
 
+![CI](https://github.com/Hhh2178/aigc-provider-runtime-kit/actions/workflows/ci.yml/badge.svg)
+
 This project starts as a small, framework-neutral kit extracted from production lessons:
 
 - Provider protocol and model capability types.
@@ -16,6 +18,15 @@ This project starts as a small, framework-neutral kit extracted from production 
 ## Status
 
 `v0.1.0` is a foundation release. APIs are intentionally small and may evolve before a stable `1.0`.
+
+## Package Entrypoints
+
+| Entrypoint | Purpose |
+| --- | --- |
+| `aigc-provider-runtime-kit` | Combined runtime exports |
+| `aigc-provider-runtime-kit/core` | Provider, model, schema, and request body helpers |
+| `aigc-provider-runtime-kit/runninghub` | RunningHub catalog, descriptor, client, and key-pool helpers |
+| `aigc-provider-runtime-kit/runtime` | Explicit combined runtime exports |
 
 ## Install
 
@@ -42,6 +53,12 @@ const execution = buildRunningHubExecutionDescriptor({
 });
 ```
 
+More examples:
+
+- `docs/getting-started.md`
+- `docs/api-reference.md`
+- `examples/node-basic/`
+
 ## Repository Layout
 
 ```text
@@ -51,6 +68,8 @@ packages/runtime/     Combined public exports
 docs/                 Harness, governance, system docs, specs, and plans
 scripts/              Local verification contracts
 examples/             Minimal usage examples
+tests/                Node built-in test coverage for public behavior
+.github/workflows/    GitHub CI verification
 ```
 
 ## Harness
@@ -68,7 +87,25 @@ Run:
 ```bash
 npm run harness:verify:project
 npm run type-check
+npm test
 ```
+
+## Local Development
+
+```bash
+npm ci
+npm run harness:verify:project
+npm run type-check
+npm run build
+npm test
+```
+
+## Public Project Docs
+
+- `CONTRIBUTING.md` explains contribution flow and commit boundaries.
+- `SECURITY.md` defines vulnerability and secret-handling rules.
+- `CHANGELOG.md` records public release changes.
+- `docs/roadmap.md` tracks the foundation roadmap without promising hosted infrastructure.
 
 ## Security
 

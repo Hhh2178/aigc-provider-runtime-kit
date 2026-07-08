@@ -1,0 +1,43 @@
+# Roadmap
+
+## Current Line: 0.1.x Foundation
+
+Goal: provide stable, framework-neutral primitives that other AIGC products can reuse without copying provider-specific glue.
+
+Completed:
+
+- Provider/model schema contracts.
+- UI metadata helpers.
+- Multipart request body helper.
+- RunningHub catalog and execution descriptor helpers.
+- RunningHub submit/poll client.
+- RunningHub key-pool concurrency helper.
+- Harness, CI, docs, and unit tests.
+
+## 0.2.x Candidate Work
+
+- Add provider adapter examples for OpenAI-compatible image/video APIs.
+- Add fixtures for common RunningHub App and Workflow shapes.
+- Add error normalization helpers shared by provider clients.
+- Add optional host-app adapter examples for Express/Fastify without making them core dependencies.
+- Add package export compatibility tests.
+
+## 0.3.x Candidate Work
+
+- Add typed provider registry loading from JSON.
+- Add schema validation helpers for admin-edited provider definitions.
+- Add observability hooks for audit events, timing, provider status, and retry decisions.
+- Add more complete key-pool strategies such as weighted dispatch and cooldown windows.
+
+## Deferred Until Explicitly Needed
+
+- Hosted admin backend.
+- Database migrations.
+- Browser UI.
+- Worker queue implementation.
+- Secrets manager integration.
+- Product-specific permission models.
+
+## Compatibility Policy Before 1.0
+
+Breaking changes are allowed when they improve the public contract, but they must be documented in `CHANGELOG.md` and covered by tests.

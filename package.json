@@ -5,10 +5,23 @@
   "type": "module",
   "private": false,
   "license": "MIT",
+  "main": "./dist/packages/runtime/src/index.js",
+  "types": "./dist/packages/runtime/src/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Hhh2178/aigc-provider-runtime-kit.git"
   },
+  "bugs": {
+    "url": "https://github.com/Hhh2178/aigc-provider-runtime-kit/issues"
+  },
+  "homepage": "https://github.com/Hhh2178/aigc-provider-runtime-kit#readme",
   "keywords": [
     "aigc",
     "provider",
@@ -20,17 +33,31 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --test tests",
     "verify:harness": "node scripts/verify-harness.mjs",
     "harness:verify:project": "npm run verify:harness",
-    "harness:verify:workspace": "npm run type-check",
-    "harness:verify:release": "npm run verify:harness && npm run type-check"
+    "harness:verify:workspace": "npm run type-check && npm test",
+    "harness:verify:release": "npm run verify:harness && npm run type-check && npm test"
   },
   "devDependencies": {
     "typescript": "^5.5.0"
   },
   "exports": {
-    "./core": "./dist/packages/core/src/index.js",
-    "./runninghub": "./dist/packages/runninghub/src/index.js",
-    "./runtime": "./dist/packages/runtime/src/index.js"
+    ".": {
+      "types": "./dist/packages/runtime/src/index.d.ts",
+      "import": "./dist/packages/runtime/src/index.js"
+    },
+    "./core": {
+      "types": "./dist/packages/core/src/index.d.ts",
+      "import": "./dist/packages/core/src/index.js"
+    },
+    "./runninghub": {
+      "types": "./dist/packages/runninghub/src/index.d.ts",
+      "import": "./dist/packages/runninghub/src/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/packages/runtime/src/index.d.ts",
+      "import": "./dist/packages/runtime/src/index.js"
+    }
   }
 }
