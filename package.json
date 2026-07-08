@@ -1,0 +1,36 @@
+{
+  "name": "aigc-provider-runtime-kit",
+  "version": "0.1.0",
+  "description": "Provider and RunningHub runtime kit for AIGC applications: provider schemas, request builders, execution descriptors, clients, and key-pool dispatch.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hhh2178/aigc-provider-runtime-kit.git"
+  },
+  "keywords": [
+    "aigc",
+    "provider",
+    "runninghub",
+    "ai-agents",
+    "runtime",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "verify:harness": "node scripts/verify-harness.mjs",
+    "harness:verify:project": "npm run verify:harness",
+    "harness:verify:workspace": "npm run type-check",
+    "harness:verify:release": "npm run verify:harness && npm run type-check"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "exports": {
+    "./core": "./dist/packages/core/src/index.js",
+    "./runninghub": "./dist/packages/runninghub/src/index.js",
+    "./runtime": "./dist/packages/runtime/src/index.js"
+  }
+}
