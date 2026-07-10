@@ -63,8 +63,12 @@ export function createProviderRuntime(options: CreateProviderRuntimeOptions) {
       adapter = adapters.find((candidate) => candidate.supports(provider, model));
       if (!adapter) throw new ProviderRuntimeError("ADAPTER_NOT_FOUND", `No adapter supports provider ${provider.id} and model ${model.id}`, { providerId: provider.id, modelId: model.id });
       await emit({ type: "adapter.selected", executionId, adapterId: adapter.id });
-      const signal = executionSignal(request.signal, request.timeoutMs);
-      if (signal?.aborted) throw aborted(request, signal.reason);
+      const control = executionControl(request.signal, request.timeoutMs);
+      const signal = control.signal;
+      if (signal?.aborted) {
+        control.cleanup();
+        throw aborted(request, signal.reason);
+      }
       let result: ProviderExecutionResult;
       try {
         const execution = adapter.execute({
@@ -80,6 +84,8 @@ export function createProviderRuntime(options: CreateProviderRuntimeOptions) {
       } catch (cause) {
         if (signal?.aborted) throw aborted(request, signal.reason);
         throw new ProviderRuntimeError("ADAPTER_FAILED", `Adapter ${adapter.id} failed`, { providerId: provider.id, modelId: model.id, adapterId: adapter.id, cause });
+      } finally {
+        control.cleanup();
       }
       const normalized = normalizeResult(result, provider, model);
       await emit({ type: "execution.succeeded", executionId, result: normalized, durationMs: Date.now() - startedAt });
@@ -133,10 +139,15 @@ function normalizeResult(result: ProviderExecutionResult, provider: ProviderDefi
   };
 }
 
-function executionSignal(signal: AbortSignal | undefined, timeoutMs: number | undefined) {
-  const timeout = Number.isFinite(timeoutMs) ? AbortSignal.timeout(Math.max(1, Math.round(timeoutMs as number))) : undefined;
-  if (signal && timeout) return AbortSignal.any([signal, timeout]);
-  return signal ?? timeout;
+function executionControl(signal: AbortSignal | undefined, timeoutMs: number | undefined) {
+  if (!Number.isFinite(timeoutMs)) return { signal, cleanup: () => {} };
+  const controller = new AbortController();
+  const duration = Math.max(1, Math.round(timeoutMs as number));
+  const timer = setTimeout(() => controller.abort(new Error(`Provider execution timed out after ${duration}ms`)), duration);
+  return {
+    signal: signal ? AbortSignal.any([signal, controller.signal]) : controller.signal,
+    cleanup: () => clearTimeout(timer)
+  };
 }
 
 function aborted(request: ProviderExecutionInput, cause: unknown) {
