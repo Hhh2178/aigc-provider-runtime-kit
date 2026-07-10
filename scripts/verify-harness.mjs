@@ -37,7 +37,9 @@ const requiredPackageScripts = [
   "harness:verify:release",
   "type-check",
   "build",
-  "test"
+  "test",
+  "test:package",
+  "prepack"
 ];
 
 const failures = [];
@@ -62,7 +64,7 @@ for (const exportPath of [".", "./core", "./runninghub", "./runtime"]) {
   if (!packageJson.exports?.[exportPath]?.import) failures.push(`package exports missing import for: ${exportPath}`);
 }
 
-for (const field of ["main", "types", "files", "sideEffects", "repository", "bugs", "homepage"]) {
+for (const field of ["main", "types", "files", "sideEffects", "engines", "repository", "bugs", "homepage"]) {
   if (packageJson[field] === undefined) failures.push(`package.json missing package maturity field: ${field}`);
 }
 
@@ -72,7 +74,7 @@ for (const token of [".env", "*.pem", "*.key"]) {
 }
 
 const ci = existsSync(join(root, ".github/workflows/ci.yml")) ? readFileSync(join(root, ".github/workflows/ci.yml"), "utf8") : "";
-for (const command of ["npm ci", "npm run harness:verify:project", "npm run type-check", "npm test"]) {
+for (const command of ["npm ci", "npm run harness:verify:project", "npm run type-check", "npm test", "npm run test:package"]) {
   if (!ci.includes(command)) failures.push(`CI missing command: ${command}`);
 }
 

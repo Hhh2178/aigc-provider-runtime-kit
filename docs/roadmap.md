@@ -11,14 +11,16 @@ Completed:
 - Multipart request body helper.
 - RunningHub catalog and execution descriptor helpers.
 - RunningHub submit/poll client.
+- Bounded RunningHub task/request timeouts, cancellation, and typed errors.
 - RunningHub key-pool concurrency helper.
+- Package export verification and release-safe package contents.
 - Harness, CI, docs, and unit tests.
 
 ## 0.2.x Candidate Work
 
 - Add provider adapter examples for OpenAI-compatible image/video APIs.
 - Add fixtures for common RunningHub App and Workflow shapes.
-- Add error normalization helpers shared by provider clients.
+- Add retry/backoff policy helpers shared by provider clients.
 - Add optional host-app adapter examples for Express/Fastify without making them core dependencies.
 - Add package export compatibility tests.
 

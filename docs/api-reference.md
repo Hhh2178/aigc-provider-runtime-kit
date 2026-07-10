@@ -57,6 +57,12 @@ Normalizes a source catalog record into a complete RunningHub catalog item.
 
 Creates a minimal RunningHub submit/poll client. Host applications should wrap this client with their own permission, quota, credential, and audit layers.
 
+Client options include `requestTimeoutMs` for individual HTTP requests and `taskTimeoutMs` for the complete polling lifecycle. Both have bounded defaults. `runTask` also accepts a per-task `timeoutMs` and an `AbortSignal` through `signal`.
+
+### `RunningHubError` and `isRunningHubError(value)`
+
+RunningHub failures use a typed error with `code`, `stage`, optional HTTP `status`, and a `retryable` hint. Codes distinguish invalid configuration/input, cancellation, request or response failures, upstream rejection, task failure/timeout, unknown status, and missing output.
+
 ### `extractRunningHubOutputUrls(value)`
 
 Extracts image, video, and audio URLs from nested RunningHub result payloads.
@@ -64,6 +70,8 @@ Extracts image, video, and audio URLs from nested RunningHub result payloads.
 ### `acquireRunningHubKey(input)` and `releaseRunningHubKey(input)`
 
 Provide key-pool concurrency helpers against a Redis-like runtime interface.
+
+`acquireRunningHubKey` accepts an optional `leaseSeconds` value between 30 seconds and 24 hours. Successful acquisitions refresh the counter lease.
 
 ### `orderRunningHubKeys(keys, preferredKeyId?)`
 

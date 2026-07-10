@@ -13,6 +13,7 @@ export interface RunningHubKeyAcquireInput {
   preferredKeyId?: string;
   keys: RunningHubKeyPoolItem[];
   defaultConcurrency: number;
+  leaseSeconds?: number;
   runtime: RunningHubKeyPoolRuntime;
   windowKey?: (providerId: string, keyId: string) => string;
 }
@@ -32,7 +33,7 @@ export async function acquireRunningHubKey(input: RunningHubKeyAcquireInput): Pr
     const current = Number(await input.runtime.get(key).catch(() => "0")) || 0;
     if (current >= limit) continue;
     const next = await input.runtime.incr(key);
-    if (next === 1) await input.runtime.expire(key, 60 * 60);
+    if (next <= limit) await input.runtime.expire(key, normalizeLeaseSeconds(input.leaseSeconds));
     if (next > limit) {
       await input.runtime.decr(key).catch(() => undefined);
       continue;
@@ -61,4 +62,9 @@ export function orderRunningHubKeys(keys: RunningHubKeyPoolItem[], preferredKeyI
 
 function defaultWindowKey(providerId: string, keyId: string) {
   return `aigc-provider-runtime-kit:runninghub:${providerId}:${keyId}`;
+}
+
+function normalizeLeaseSeconds(value: number | undefined) {
+  if (!Number.isFinite(value)) return 60 * 60;
+  return Math.max(30, Math.min(24 * 60 * 60, Math.round(value as number)));
 }

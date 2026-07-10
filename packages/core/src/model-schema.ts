@@ -62,8 +62,8 @@ export function parseInputCapabilities(value: unknown, capability: ModelCapabili
   const maxRef = Number(schema.referenceImages?.max);
   return {
     prompt: source.prompt !== false,
-    imageReference: source.imageReference === undefined ? capability === "image" && Boolean(schema.referenceImages) : Boolean(source.imageReference),
-    multiImage: source.multiImage === undefined ? capability === "image" && Number.isFinite(maxRef) && maxRef > 1 : Boolean(source.multiImage),
+    imageReference: source.imageReference === undefined ? Boolean(schema.referenceImages) : Boolean(source.imageReference),
+    multiImage: source.multiImage === undefined ? Number.isFinite(maxRef) && maxRef > 1 : Boolean(source.multiImage),
     firstFrame: Boolean(source.firstFrame),
     lastFrame: Boolean(source.lastFrame),
     mask: Boolean(source.mask),

@@ -29,6 +29,7 @@ Most AIGC applications eventually need the same provider infrastructure:
 - **RunningHub catalog helpers**: normalize RunningHub App/Workflow records into reusable host-app entries.
 - **Execution descriptors**: generate submit/poll/output handling metadata for RunningHub tasks.
 - **RunningHub client**: submit tasks, poll results, normalize failures, and extract image/video/audio URLs.
+- **Bounded execution**: task and request timeouts, cancellation signals, typed errors, and unknown-status protection.
 - **Key-pool concurrency**: acquire and release RunningHub keys against a Redis-like runtime interface.
 - **No framework lock-in**: works with Node.js services, workers, CLI tools, or any framework that can import ESM.
 - **Governed project harness**: includes docs, CI, tests, and verification scripts to keep the package maintainable.
@@ -130,6 +131,33 @@ const result = await client.runTask({
 console.log(result.videoUrls);
 ```
 
+Cancel a task from your host application and handle structured failures:
+
+```ts
+import {
+  createRunningHubClient,
+  isRunningHubError
+} from "aigc-provider-runtime-kit/runninghub";
+
+const controller = new AbortController();
+
+try {
+  await client.runTask({
+    targetType: "workflow",
+    runTargetId: "workflow-id",
+    workflowId: "workflow-id",
+    nodeInfoList: [],
+    signal: controller.signal
+  });
+} catch (error) {
+  if (isRunningHubError(error)) {
+    console.error(error.code, error.stage, error.retryable);
+  }
+}
+```
+
+The client defaults to a 30-minute task timeout and a 2-minute timeout per HTTP request. Override them with `taskTimeoutMs` and `requestTimeoutMs` when creating the client, or use `timeoutMs` for one task.
+
 Use key-pool helpers with a Redis-like runtime:
 
 ```ts
@@ -141,6 +169,7 @@ import {
 const acquired = await acquireRunningHubKey({
   providerId: "runninghub",
   defaultConcurrency: 2,
+  leaseSeconds: 60 * 60,
   runtime: redisLikeRuntime,
   keys: [
     {
@@ -168,6 +197,8 @@ try {
   });
 }
 ```
+
+Choose a lease long enough for the longest expected task. Each successful acquisition refreshes the lease, and the default is one hour.
 
 ## What You Can Build With It
 
@@ -232,6 +263,7 @@ npm run harness:verify:project
 npm run type-check
 npm run build
 npm test
+npm run test:package
 ```
 
 Use the full release gate before publishing or tagging:
