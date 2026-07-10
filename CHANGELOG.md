@@ -2,7 +2,7 @@
 
 All notable changes to `aigc-provider-runtime-kit` are recorded here.
 
-## Unreleased
+## 0.2.0 - 2026-07-10
 
 ### Fixed
 
@@ -19,6 +19,11 @@ All notable changes to `aigc-provider-runtime-kit` are recorded here.
 - Dependency-free OpenAI-compatible chat, image, and custom JSON client.
 - Opt-in exponential retry/backoff helper with jitter and cancellation.
 - Installed-tarball consumer smoke testing for published entrypoints.
+- Unified `ProviderAdapter` contract and `createProviderRuntime` execution entrypoint.
+- Standard text/image/video/audio/JSON outputs and normalized usage metadata.
+- Model input validation for required fields, types, options, ranges, list limits, and capabilities.
+- OpenAI-compatible and RunningHub runtime adapters.
+- Lifecycle and progress events through isolated observability hooks.
 
 ## 0.1.0 - 2026-07-08
 

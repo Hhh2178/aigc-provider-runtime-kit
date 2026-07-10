@@ -2,7 +2,7 @@ import type { ProviderDefinition, ProviderModelDefinition, ProviderProtocol } fr
 
 export interface ValidationIssue {
   path: string;
-  code: "required" | "invalid" | "duplicate" | "unknown_provider";
+  code: "required" | "invalid" | "duplicate" | "unknown_provider" | "out_of_range" | "unsupported";
   message: string;
 }
 

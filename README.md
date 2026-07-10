@@ -43,7 +43,7 @@ Most AIGC applications eventually need the same provider infrastructure:
 npm install aigc-provider-runtime-kit
 ```
 
-The package is currently in the `0.1.x` foundation line. APIs are intentionally small and may evolve before `1.0`.
+The package is currently in the `0.2.x` runtime line. APIs may continue to evolve before `1.0`.
 
 If the package has not been published to npm in your environment yet, install directly from GitHub:
 
@@ -130,6 +130,43 @@ const response = await client.createImage({
 ```
 
 Retries are opt-in. The client retries only retryable network failures, HTTP 408/409/429 responses, and 5xx responses when a retry policy is supplied.
+
+Execute different providers through one runtime entrypoint:
+
+```ts
+import {
+  createOpenAICompatibleAdapter,
+  createOpenAICompatibleClient,
+  createProviderRegistry,
+  createProviderRuntime
+} from "aigc-provider-runtime-kit/runtime";
+
+const registry = createProviderRegistry({ providers, models });
+const openaiClient = createOpenAICompatibleClient({
+  baseUrl: "https://api.example.com/v1",
+  apiKey: process.env.PROVIDER_API_KEY
+});
+
+const runtime = createProviderRuntime({
+  registry,
+  adapters: [createOpenAICompatibleAdapter({ client: openaiClient })],
+  hooks: {
+    onEvent(event) {
+      console.log(event.type);
+    }
+  }
+});
+
+const result = await runtime.execute({
+  providerId: "openai-compatible",
+  modelId: "image-primary",
+  input: { prompt: "A cinematic tropical city" }
+});
+
+console.log(result.outputs);
+```
+
+`providerId` and `modelId` refer to registry IDs. The runtime validates configuration and input, selects an adapter, propagates cancellation/timeouts, and returns normalized outputs.
 
 Build a RunningHub execution descriptor:
 
