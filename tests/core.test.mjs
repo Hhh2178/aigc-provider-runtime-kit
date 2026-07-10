@@ -5,6 +5,8 @@ import {
   defaultParameterSchemaForModel,
   durationOptionsFromRange,
   parseModelParameterSchema,
+  parseInputCapabilities,
+  buildProviderMultipartRequestBody,
   uiMetadataFromSchema
 } from "aigc-provider-runtime-kit/core";
 
@@ -15,6 +17,29 @@ test("defaultParameterSchemaForModel returns OpenAI image defaults", () => {
   assert.deepEqual(schema.aspectRatio?.options?.slice(0, 3), ["1:1", "16:9", "9:16"]);
   assert.equal(schema.size?.default, "1024x1024");
   assert.equal(schema.referenceImages?.max, 9);
+});
+
+test("video schemas expose reference image input capability", () => {
+  const schema = defaultParameterSchemaForModel("video", "video-model", "custom");
+  const capabilities = parseInputCapabilities({ parameterSchema: schema }, "video");
+
+  assert.equal(capabilities.imageReference, true);
+  assert.equal(capabilities.multiImage, false);
+});
+
+test("buildProviderMultipartRequestBody accepts data URLs and scalars", async () => {
+  const form = await buildProviderMultipartRequestBody({
+    prompt: "hello",
+    count: 2,
+    image: "data:image/png;base64,aGVsbG8="
+  }, ["image"]);
+
+  assert.equal(form.get("prompt"), "hello");
+  assert.equal(form.get("count"), "2");
+  const image = form.get("image");
+  assert.equal(image instanceof File, true);
+  assert.equal(image.type, "image/png");
+  assert.equal(await image.text(), "hello");
 });
 
 test("parseModelParameterSchema accepts JSON strings and rejects invalid values", () => {

@@ -3,9 +3,13 @@ import assert from "node:assert/strict";
 
 import {
   buildRunningHubExecutionDescriptor,
+  createRunningHubClient,
   extractRunningHubOutputUrls,
+  isRunningHubError,
   normalizeRunningHubInputSlots,
-  orderRunningHubKeys
+  orderRunningHubKeys,
+  acquireRunningHubKey,
+  releaseRunningHubKey
 } from "aigc-provider-runtime-kit/runninghub";
 
 test("buildRunningHubExecutionDescriptor creates app submit metadata", () => {
@@ -19,6 +23,95 @@ test("buildRunningHubExecutionDescriptor creates app submit metadata", () => {
   assert.equal(descriptor.submit.targetId, "app-123");
   assert.equal(descriptor.submit.submitMode, "ai-app");
   assert.equal(descriptor.submit.taskCapability, "image");
+});
+
+test("createRunningHubClient submits and polls a workflow", async () => {
+  const calls = [];
+  const responses = [
+    { code: 0, data: { taskId: "task-1" } },
+    { code: 0, status: "SUCCESS", data: { fileUrl: "https://example.com/result.mp4" } }
+  ];
+  const client = createRunningHubClient({
+    apiKey: "test-key",
+    baseUrl: "https://www.runninghub.cn",
+    wait: async () => {},
+    fetcher: async (url, init) => {
+      calls.push({ url: String(url), init });
+      return Response.json(responses.shift());
+    }
+  });
+
+  const result = await client.runTask({
+    targetType: "workflow",
+    runTargetId: "workflow-1",
+    nodeInfoList: []
+  });
+
+  assert.equal(result.upstreamTaskId, "task-1");
+  assert.deepEqual(result.videoUrls, ["https://example.com/result.mp4"]);
+  assert.equal(calls.length, 2);
+  assert.match(calls[0].url, /workflow\/workflow-1$/);
+  assert.equal(JSON.parse(calls[0].init.body).apiKey, "test-key");
+});
+
+test("createRunningHubClient rejects unknown terminal states", async () => {
+  const responses = [
+    { code: 0, data: { taskId: "task-2" } },
+    { code: 0, status: "MYSTERY", data: {} }
+  ];
+  const client = createRunningHubClient({
+    apiKey: "test-key",
+    baseUrl: "https://www.runninghub.cn",
+    wait: async () => {},
+    fetcher: async () => Response.json(responses.shift())
+  });
+
+  await assert.rejects(
+    client.runTask({ targetType: "workflow", runTargetId: "workflow-1", nodeInfoList: [] }),
+    (error) => isRunningHubError(error) && error.code === "UNKNOWN_TASK_STATUS"
+  );
+});
+
+test("createRunningHubClient supports cancellation", async () => {
+  const controller = new AbortController();
+  controller.abort("stop");
+  const client = createRunningHubClient({
+    apiKey: "test-key",
+    baseUrl: "https://www.runninghub.cn",
+    fetcher: async () => { throw new Error("fetch should not run"); }
+  });
+
+  await assert.rejects(
+    client.runTask({ targetType: "workflow", runTargetId: "workflow-1", nodeInfoList: [], signal: controller.signal }),
+    (error) => isRunningHubError(error) && error.code === "REQUEST_ABORTED"
+  );
+});
+
+test("key pool applies a configurable lease and releases the key", async () => {
+  const values = new Map();
+  const expirations = [];
+  const runtime = {
+    async get(key) { return values.has(key) ? String(values.get(key)) : null; },
+    async incr(key) { const next = (values.get(key) || 0) + 1; values.set(key, next); return next; },
+    async decr(key) { const next = (values.get(key) || 0) - 1; values.set(key, next); return next; },
+    async del(key) { values.delete(key); },
+    async expire(key, seconds) { expirations.push({ key, seconds }); }
+  };
+  const input = {
+    providerId: "runninghub",
+    defaultConcurrency: 1,
+    leaseSeconds: 120,
+    runtime,
+    keys: [{ id: "key-1", note: "", apiKey: "secret", maxConcurrency: 1, enabled: true, isDefault: true }]
+  };
+
+  const acquired = await acquireRunningHubKey(input);
+  assert.equal(acquired.acquired, true);
+  assert.equal(expirations[0].seconds, 120);
+  assert.equal((await acquireRunningHubKey(input)).reason, "all_keys_busy");
+
+  await releaseRunningHubKey({ providerId: "runninghub", keyId: "key-1", runtime });
+  assert.equal((await acquireRunningHubKey(input)).acquired, true);
 });
 
 test("buildRunningHubExecutionDescriptor creates workflow submit metadata", () => {

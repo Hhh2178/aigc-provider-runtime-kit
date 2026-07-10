@@ -9,6 +9,9 @@ The Providers system defines framework-neutral contracts for AIGC provider confi
 - model parameter schema
 - UI metadata
 - JSON/multipart request body construction
+- runtime validation and registry lookup
+- OpenAI-compatible JSON execution
+- reusable retry/backoff policy
 
 ## Ownership
 
@@ -25,11 +28,15 @@ The Providers system defines framework-neutral contracts for AIGC provider confi
 | Model definitions | Host app -> kit | `ProviderModelDefinition` |
 | Parameter schema | Host app -> UI/runtime | `ModelParameterSchema` |
 | Multipart builder | Runtime -> provider API | `buildProviderMultipartRequestBody` |
+| Provider registry | Host app -> kit | `createProviderRegistry` |
+| OpenAI-compatible client | Host worker -> provider API | `createOpenAICompatibleClient` |
+| Retry policy | Runtime -> provider API | `withRetry` |
 
 ## Design Rules
 
 - Differences should be dataized as schema/config before adding provider-specific code.
 - Provider API keys stay in host applications, not this kit.
+- Retries are opt-in because repeated generation requests may create duplicate work or charges.
 - The core package must not import host app code.
 
 ## Verification

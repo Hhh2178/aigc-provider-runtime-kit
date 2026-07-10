@@ -19,6 +19,8 @@ The RunningHub system provides reusable contracts and helpers for RunningHub AI 
 4. Host worker uses `createRunningHubClient` to submit and poll.
 5. Optional key-pool helpers manage multi-key concurrency.
 
+The client applies bounded request and task timeouts, accepts an `AbortSignal`, and reports typed `RunningHubError` failures. The key pool uses a configurable concurrency lease so stale counters can recover.
+
 ## Interfaces
 
 | Interface | Direction | Contract |
@@ -33,6 +35,8 @@ The RunningHub system provides reusable contracts and helpers for RunningHub AI 
 - App/workflow IDs are mixed.
 - Fields do not match upstream RunningHub node info.
 - Poll returns success with no usable output URL.
+- Poll returns an unknown status or exceeds its timeout.
+- The host aborts an in-flight task.
 - All keys are busy or no enabled keys exist.
 
 ## Verification

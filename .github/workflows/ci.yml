@@ -37,3 +37,6 @@ jobs:
 
       - name: Test
         run: npm test
+
+      - name: Verify package exports
+        run: npm run test:package

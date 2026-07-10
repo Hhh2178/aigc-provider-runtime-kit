@@ -8,8 +8,11 @@
   "main": "./dist/packages/runtime/src/index.js",
   "types": "./dist/packages/runtime/src/index.d.ts",
   "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
   "files": [
-    "dist",
+    "dist/packages",
     "README.md",
     "LICENSE",
     "CHANGELOG.md"
@@ -32,12 +35,14 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
     "type-check": "tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test tests/*.test.mjs",
+    "test:package": "npm run build && node scripts/verify-package.mjs",
     "verify:harness": "node scripts/verify-harness.mjs",
     "harness:verify:project": "npm run verify:harness",
     "harness:verify:workspace": "npm run type-check && npm test",
-    "harness:verify:release": "npm run verify:harness && npm run type-check && npm test"
+    "harness:verify:release": "npm run verify:harness && npm run type-check && npm test && npm run test:package"
   },
   "devDependencies": {
     "typescript": "^5.5.0"

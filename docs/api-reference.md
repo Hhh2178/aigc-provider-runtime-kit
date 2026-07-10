@@ -39,6 +39,24 @@ Checks whether a provider request mode should be treated as multipart form data.
 
 Builds a `FormData` request body from scalar fields and file URL or data URL fields.
 
+### `validateProviderDefinition(value)` and `validateProviderModelDefinition(value, providerIds?)`
+
+Return structured validation results with field paths, issue codes, and messages for provider or model configuration.
+
+### `createProviderRegistry(input)`
+
+Creates an immutable provider/model registry after validating URLs, protocols, capabilities, duplicate IDs, and provider references. Invalid input throws `ProviderRegistryValidationError` with an `issues` array.
+
+### `withRetry(operation, options?)`
+
+Runs an asynchronous operation with bounded exponential backoff, optional jitter, cancellation, custom retry decisions, and retry callbacks.
+
+### `createOpenAICompatibleClient(options)`
+
+Creates a dependency-free JSON client for OpenAI-compatible APIs. It exposes `request(path, body)`, `createChatCompletion(body)`, and `createImage(body)`. Request timeout, cancellation, custom headers, and opt-in retry policy are supported.
+
+Failures use `OpenAICompatibleError`; `isOpenAICompatibleError(value)` safely narrows unknown errors.
+
 ## RunningHub Helpers
 
 ### `normalizeRunningHubInputSlots(fields)`
@@ -57,6 +75,12 @@ Normalizes a source catalog record into a complete RunningHub catalog item.
 
 Creates a minimal RunningHub submit/poll client. Host applications should wrap this client with their own permission, quota, credential, and audit layers.
 
+Client options include `requestTimeoutMs` for individual HTTP requests and `taskTimeoutMs` for the complete polling lifecycle. Both have bounded defaults. `runTask` also accepts a per-task `timeoutMs` and an `AbortSignal` through `signal`.
+
+### `RunningHubError` and `isRunningHubError(value)`
+
+RunningHub failures use a typed error with `code`, `stage`, optional HTTP `status`, and a `retryable` hint. Codes distinguish invalid configuration/input, cancellation, request or response failures, upstream rejection, task failure/timeout, unknown status, and missing output.
+
 ### `extractRunningHubOutputUrls(value)`
 
 Extracts image, video, and audio URLs from nested RunningHub result payloads.
@@ -64,6 +88,8 @@ Extracts image, video, and audio URLs from nested RunningHub result payloads.
 ### `acquireRunningHubKey(input)` and `releaseRunningHubKey(input)`
 
 Provide key-pool concurrency helpers against a Redis-like runtime interface.
+
+`acquireRunningHubKey` accepts an optional `leaseSeconds` value between 30 seconds and 24 hours. Successful acquisitions refresh the counter lease.
 
 ### `orderRunningHubKeys(keys, preferredKeyId?)`
 
