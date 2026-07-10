@@ -33,7 +33,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "type-check": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test tests",
+    "test": "npm run build && node --test tests/*.test.mjs",
     "verify:harness": "node scripts/verify-harness.mjs",
     "harness:verify:project": "npm run verify:harness",
     "harness:verify:workspace": "npm run type-check && npm test",
