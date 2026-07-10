@@ -2,154 +2,136 @@
 
 [![CI](https://github.com/Hhh2178/aigc-provider-runtime-kit/actions/workflows/ci.yml/badge.svg)](https://github.com/Hhh2178/aigc-provider-runtime-kit/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-339933.svg)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg)](https://www.typescriptlang.org/)
 
-Framework-neutral TypeScript primitives for AIGC products that need to manage model providers, model parameters, request bodies, RunningHub Apps/Workflows, and provider key concurrency without rebuilding the same runtime layer in every project.
+A framework-neutral TypeScript runtime for applications that need to configure, validate, and execute multiple AIGC providers through one stable interface.
 
-This repository is a small runtime kit, not a hosted service. It gives your application typed building blocks; your application keeps ownership of credentials, databases, queues, permissions, billing, and auditing.
+Define providers and models once, connect provider-specific adapters, and execute chat, image, video, audio, or workflow models without spreading provider branching throughout your application.
 
-## Why This Exists
+> Current release line: `0.2.x`. The package is usable in applications, but its public API may still evolve before `1.0`.
 
-Most AIGC applications eventually need the same provider infrastructure:
+## Why this project exists
 
-- A normalized way to describe providers and models.
-- Model parameter schemas that can drive admin forms, canvas nodes, or API payloads.
-- Request body helpers for JSON and multipart provider APIs.
-- A reusable RunningHub App/Workflow catalog model.
-- A safe way to submit, poll, and extract media outputs from RunningHub tasks.
-- Key-pool helpers so multiple API keys can be used without exceeding concurrency limits.
+AIGC applications usually repeat the same infrastructure:
 
-`aigc-provider-runtime-kit` packages those common pieces as reusable TypeScript modules.
+- provider and model configuration;
+- model-specific parameter validation;
+- provider selection and request dispatch;
+- synchronous and asynchronous task handling;
+- normalized image, video, audio, and text results;
+- timeouts, cancellation, retries, and structured errors;
+- progress events, audit hooks, and API-key concurrency control.
 
-## Features
+`aigc-provider-runtime-kit` provides these pieces as a reusable SDK. Your product keeps control of credentials, persistence, queues, authentication, permissions, billing, and user-facing UI.
 
-- **Provider contracts**: typed provider, model, capability, and parameter schema definitions.
-- **Provider registry**: validate provider/model configuration, reject duplicate or dangling references, and query enabled entries.
-- **OpenAI-compatible client**: call chat, image, or custom JSON endpoints without adding an SDK dependency.
-- **Reusable retry policy**: opt-in exponential backoff with jitter, cancellation, and retry hooks.
-- **UI-ready model metadata**: convert schemas into aspect ratio, size, duration, resolution, and reference-input metadata.
-- **Request body helpers**: build multipart `FormData` payloads from scalar fields, remote URLs, or data URLs.
-- **RunningHub catalog helpers**: normalize RunningHub App/Workflow records into reusable host-app entries.
-- **Execution descriptors**: generate submit/poll/output handling metadata for RunningHub tasks.
-- **RunningHub client**: submit tasks, poll results, normalize failures, and extract image/video/audio URLs.
-- **Bounded execution**: task and request timeouts, cancellation signals, typed errors, and unknown-status protection.
-- **Key-pool concurrency**: acquire and release RunningHub keys against a Redis-like runtime interface.
-- **No framework lock-in**: works with Node.js services, workers, CLI tools, or any framework that can import ESM.
-- **Governed project harness**: includes docs, CI, tests, and verification scripts to keep the package maintainable.
+## Highlights
 
-## Install
+- **One execution API** — call configured models through `runtime.execute(...)`.
+- **Validated registry** — reject invalid URLs, duplicate IDs, and dangling model/provider references early.
+- **Model-aware input validation** — required fields, types, options, numeric ranges, list limits, and input capabilities.
+- **Adapter architecture** — built-in bridges for OpenAI-compatible APIs and RunningHub, plus a small custom adapter contract.
+- **Standard results** — normalize text, image, video, audio, JSON, usage, task IDs, and raw provider payloads.
+- **Bounded execution** — request/task timeouts and `AbortSignal` cancellation, including protection from adapters that ignore cancellation.
+- **Structured errors** — distinguish configuration, validation, adapter, upstream, timeout, and result failures.
+- **Observability hooks** — receive lifecycle and progress events without coupling the SDK to a logging platform.
+- **RunningHub utilities** — App/Workflow descriptors, submit/poll client, output extraction, and Redis-like key concurrency.
+- **Release-grade package checks** — TypeScript strict mode, CI, tests, package export checks, and installed-tarball smoke tests.
+
+## What this package is — and is not
+
+| Included | Owned by your application |
+| --- | --- |
+| Provider/model contracts and registry | API-key and secret storage |
+| Input schema validation | Database and migrations |
+| Unified runtime and adapter contract | Authentication and permissions |
+| OpenAI-compatible and RunningHub clients | Queue and worker infrastructure |
+| Standard outputs, errors, events, and retries | Billing, quotas, and product policies |
+| Multipart and key-pool helpers | Admin UI and end-user UI |
+
+This repository is an SDK, not a hosted API service or complete SaaS backend.
+
+## Requirements
+
+- Node.js 22 or newer
+- ESM (`"type": "module"`)
+- Runtime support for `fetch`, `FormData`, `Blob`, and `AbortSignal`
+- TypeScript is recommended but not required by consumers
+
+## Installation
+
+Install from npm after the package is published:
 
 ```bash
 npm install aigc-provider-runtime-kit
 ```
 
-The package is currently in the `0.2.x` runtime line. APIs may continue to evolve before `1.0`.
-
-If the package has not been published to npm in your environment yet, install directly from GitHub:
+Until then, install directly from GitHub:
 
 ```bash
 npm install github:Hhh2178/aigc-provider-runtime-kit
 ```
 
-## Requirements
-
-- Node.js 22 or a modern runtime with ESM, `fetch`, `FormData`, `Blob`, and `AbortSignal.timeout`.
-- TypeScript is recommended for the best developer experience.
-
 ## Package Entrypoints
 
-| Entrypoint | Purpose |
+| Entrypoint | Use it for |
 | --- | --- |
-| `aigc-provider-runtime-kit` | Combined runtime exports |
-| `aigc-provider-runtime-kit/core` | Provider, model, schema, and request body helpers |
-| `aigc-provider-runtime-kit/runninghub` | RunningHub catalog, descriptor, client, and key-pool helpers |
-| `aigc-provider-runtime-kit/runtime` | Explicit combined runtime exports |
+| `aigc-provider-runtime-kit` | All public exports |
+| `aigc-provider-runtime-kit/runtime` | Unified execution contracts, runtime, validation, and adapters |
+| `aigc-provider-runtime-kit/core` | Registry, schemas, multipart, retry, and OpenAI-compatible client |
+| `aigc-provider-runtime-kit/runninghub` | RunningHub client, descriptors, output extraction, and key pool |
 
-## Quick Start
+## Quick start: unified OpenAI-compatible execution
 
-Create UI-friendly model metadata from a provider model:
-
-```ts
-import {
-  defaultParameterSchemaForModel,
-  uiMetadataFromSchema
-} from "aigc-provider-runtime-kit/core";
-
-const schema = defaultParameterSchemaForModel("image", "gpt-image-2", "openai");
-const ui = uiMetadataFromSchema(schema, "image");
-
-console.log(ui.defaultAspectRatio);
-console.log(ui.maxReferenceImages);
-```
-
-Validate and query provider configuration before using it:
-
-```ts
-import { createProviderRegistry } from "aigc-provider-runtime-kit/core";
-
-const registry = createProviderRegistry({
-  providers: [{
-    id: "openai-compatible",
-    name: "OpenAI-compatible API",
-    baseUrl: "https://api.example.com/v1",
-    protocol: "openai",
-    enabled: true
-  }],
-  models: [{
-    id: "image-primary",
-    providerId: "openai-compatible",
-    modelId: "image-model",
-    displayName: "Primary image model",
-    capability: "image",
-    enabled: true
-  }]
-});
-
-console.log(registry.listModels({ enabledOnly: true }));
-```
-
-Call an OpenAI-compatible endpoint with optional retry/backoff:
-
-```ts
-import { createOpenAICompatibleClient } from "aigc-provider-runtime-kit/core";
-
-const client = createOpenAICompatibleClient({
-  baseUrl: "https://api.example.com/v1",
-  apiKey: process.env.PROVIDER_API_KEY,
-  retry: {
-    maxAttempts: 3,
-    baseDelayMs: 500,
-    maxDelayMs: 5000
-  }
-});
-
-const response = await client.createImage({
-  model: "image-model",
-  prompt: "A cinematic tropical city"
-});
-```
-
-Retries are opt-in. The client retries only retryable network failures, HTTP 408/409/429 responses, and 5xx responses when a retry policy is supplied.
-
-Execute different providers through one runtime entrypoint:
+The example below creates a registry, connects an OpenAI-compatible client, and executes an image model through the unified runtime.
 
 ```ts
 import {
   createOpenAICompatibleAdapter,
   createOpenAICompatibleClient,
   createProviderRegistry,
-  createProviderRuntime
+  createProviderRuntime,
+  isProviderRuntimeError
 } from "aigc-provider-runtime-kit/runtime";
 
-const registry = createProviderRegistry({ providers, models });
-const openaiClient = createOpenAICompatibleClient({
+const registry = createProviderRegistry({
+  providers: [
+    {
+      id: "primary-api",
+      name: "Primary OpenAI-compatible API",
+      baseUrl: "https://api.example.com/v1",
+      protocol: "openai",
+      enabled: true
+    }
+  ],
+  models: [
+    {
+      id: "image-primary",
+      providerId: "primary-api",
+      modelId: "provider-image-model",
+      displayName: "Primary image model",
+      capability: "image",
+      enabled: true,
+      parameterSchema: {
+        prompt: { type: "string", required: true },
+        size: {
+          type: "select",
+          options: ["1024x1024", "1536x1024", "1024x1536"],
+          default: "1024x1024"
+        }
+      }
+    }
+  ]
+});
+
+const client = createOpenAICompatibleClient({
   baseUrl: "https://api.example.com/v1",
-  apiKey: process.env.PROVIDER_API_KEY
+  apiKey: process.env.PROVIDER_API_KEY!
 });
 
 const runtime = createProviderRuntime({
   registry,
-  adapters: [createOpenAICompatibleAdapter({ client: openaiClient })],
+  adapters: [createOpenAICompatibleAdapter({ client })],
   hooks: {
     onEvent(event) {
       console.log(event.type);
@@ -157,97 +139,252 @@ const runtime = createProviderRuntime({
   }
 });
 
-const result = await runtime.execute({
-  providerId: "openai-compatible",
-  modelId: "image-primary",
-  input: { prompt: "A cinematic tropical city" }
-});
+try {
+  const result = await runtime.execute({
+    providerId: "primary-api",
+    modelId: "image-primary",
+    input: {
+      prompt: "A cinematic tropical city at sunrise",
+      size: "1536x1024"
+    },
+    timeoutMs: 120_000
+  });
 
-console.log(result.outputs);
+  for (const output of result.outputs) {
+    console.log(output.type, output.url ?? output.text);
+  }
+} catch (error) {
+  if (isProviderRuntimeError(error)) {
+    console.error(error.code, error.issues);
+  }
+  throw error;
+}
 ```
 
-`providerId` and `modelId` refer to registry IDs. The runtime validates configuration and input, selects an adapter, propagates cancellation/timeouts, and returns normalized outputs.
+Important identifiers:
 
-Build a RunningHub execution descriptor:
+- `provider.id` is your internal provider ID.
+- `model.id` is the internal ID passed to `runtime.execute`.
+- `model.modelId` is the upstream provider's model identifier.
+
+## Execution lifecycle
+
+```mermaid
+flowchart TD
+    A[Execute request] --> B[Resolve provider and model]
+    B --> C[Validate enabled state and input]
+    C --> D[Select supporting adapter]
+    D --> E[Execute with timeout and cancellation]
+    E --> F[Normalize outputs and usage]
+    F --> G[Return standard result]
+```
+
+The standard result shape is:
 
 ```ts
-import { buildRunningHubExecutionDescriptor } from "aigc-provider-runtime-kit/runninghub";
+interface ProviderExecutionResult {
+  status: "completed";
+  providerId: string;
+  modelId: string;
+  capability: "chat" | "image" | "video" | "audio";
+  taskId?: string;
+  outputs: Array<{
+    type: "text" | "image" | "video" | "audio" | "json";
+    url?: string;
+    text?: string;
+    mimeType?: string;
+    data?: unknown;
+  }>;
+  usage?: {
+    inputTokens?: number;
+    outputTokens?: number;
+    totalTokens?: number;
+  };
+  raw?: unknown;
+}
+```
 
-const execution = buildRunningHubExecutionDescriptor({
-  kind: "workflow",
-  workflowId: "workflow-id",
-  runTargetId: "workflow-id",
-  taskCapability: "video",
-  fields: [
+Use normalized fields in application logic. Keep `raw` for debugging or provider-specific metadata.
+
+## Runtime events
+
+Pass `hooks.onEvent` to observe execution without changing runtime behavior:
+
+```ts
+const runtime = createProviderRuntime({
+  registry,
+  adapters,
+  hooks: {
+    async onEvent(event) {
+      switch (event.type) {
+        case "execution.progress":
+          console.log(event.progress.percent, event.progress.status);
+          break;
+        case "execution.succeeded":
+          console.log(`Completed in ${event.durationMs}ms`);
+          break;
+        case "execution.failed":
+          console.error(event.error);
+          break;
+      }
+    }
+  }
+});
+```
+
+Available events:
+
+- `execution.started`
+- `execution.validated`
+- `adapter.selected`
+- `execution.progress`
+- `execution.succeeded`
+- `execution.failed`
+
+Hook failures are isolated and never change the provider execution result.
+
+## Cancellation and timeouts
+
+```ts
+const controller = new AbortController();
+
+const pending = runtime.execute({
+  providerId: "primary-api",
+  modelId: "image-primary",
+  input: { prompt: "A cinematic rainforest" },
+  signal: controller.signal,
+  timeoutMs: 120_000
+});
+
+// Cancel from your HTTP request, worker shutdown, or user action.
+controller.abort("user_cancelled");
+
+await pending;
+```
+
+The runtime enforces its own deadline even when a third-party adapter does not handle the abort signal correctly.
+
+## OpenAI-compatible APIs
+
+Use the low-level client directly when unified execution is unnecessary:
+
+```ts
+import { createOpenAICompatibleClient } from "aigc-provider-runtime-kit/core";
+
+const client = createOpenAICompatibleClient({
+  baseUrl: "https://api.example.com/v1",
+  apiKey: process.env.PROVIDER_API_KEY!,
+  requestTimeoutMs: 120_000,
+  retry: {
+    maxAttempts: 3,
+    baseDelayMs: 500,
+    maxDelayMs: 5_000,
+    jitter: 0.2
+  }
+});
+
+const response = await client.createChatCompletion({
+  model: "chat-model",
+  messages: [{ role: "user", content: "Hello" }]
+});
+```
+
+The client provides:
+
+- `request(path, body, options?)`
+- `createChatCompletion(body, options?)`
+- `createImage(body, options?)`
+
+Retries are opt-in. This avoids silently duplicating generation requests or charges. With a retry policy, only network failures, HTTP `408`, `409`, `429`, and `5xx` responses are retried.
+
+For nonstandard video or audio endpoints, configure adapter endpoint paths:
+
+```ts
+const adapter = createOpenAICompatibleAdapter({
+  client,
+  endpoints: {
+    video: "videos/generations",
+    audio: "audio/generations"
+  },
+  normalize(raw, context) {
+    // Convert the provider-specific response into ProviderExecutionResult.
+    return normalizeVendorResult(raw, context);
+  }
+});
+```
+
+## RunningHub integration
+
+Create the client and describe the workflow mapping in the model's `advancedConfig`:
+
+```ts
+import {
+  createProviderRegistry,
+  createProviderRuntime,
+  createRunningHubAdapter,
+  createRunningHubClient
+} from "aigc-provider-runtime-kit/runtime";
+
+const registry = createProviderRegistry({
+  providers: [
     {
-      nodeId: "6",
-      fieldName: "prompt",
-      label: "Prompt",
-      valueType: "string",
-      required: true
+      id: "runninghub",
+      name: "RunningHub",
+      baseUrl: "https://www.runninghub.cn",
+      protocol: "runninghub",
+      enabled: true
+    }
+  ],
+  models: [
+    {
+      id: "workflow-video",
+      providerId: "runninghub",
+      modelId: "workflow-video",
+      displayName: "RunningHub video workflow",
+      capability: "video",
+      enabled: true,
+      parameterSchema: {
+        prompt: { type: "string", required: true }
+      },
+      advancedConfig: {
+        runninghub: {
+          targetType: "workflow",
+          runTargetId: "workflow-id",
+          workflowId: "workflow-id",
+          fieldMap: {
+            prompt: { nodeId: "6", fieldName: "prompt" }
+          }
+        }
+      }
     }
   ]
 });
 
-console.log(execution.submit.submitMode);
-console.log(execution.polling.intervalMs);
-```
-
-Submit and poll a RunningHub task from your worker:
-
-```ts
-import { createRunningHubClient } from "aigc-provider-runtime-kit/runninghub";
-
-const client = createRunningHubClient({
-  apiKey: process.env.RUNNINGHUB_API_KEY!,
-  baseUrl: "https://www.runninghub.cn"
+const runningHubClient = createRunningHubClient({
+  baseUrl: "https://www.runninghub.cn",
+  apiKey: process.env.RUNNINGHUB_API_KEY!
 });
 
-const result = await client.runTask({
-  targetType: "workflow",
-  runTargetId: "workflow-id",
-  workflowId: "workflow-id",
-  nodeInfoList: [
-    {
-      nodeId: "6",
-      fieldName: "prompt",
-      fieldValue: "A cinematic robot walking through a rainy neon street"
-    }
-  ],
-  timeoutMs: 10 * 60 * 1000
+const runtime = createProviderRuntime({
+  registry,
+  adapters: [createRunningHubAdapter({ client: runningHubClient })]
 });
 
-console.log(result.videoUrls);
+const result = await runtime.execute({
+  providerId: "runninghub",
+  modelId: "workflow-video",
+  input: { prompt: "A robot walking through a neon street" },
+  timeoutMs: 10 * 60_000
+});
+
+console.log(result.taskId, result.outputs);
 ```
 
-Cancel a task from your host application and handle structured failures:
+You may replace `advancedConfig.runninghub` mapping with a custom `resolveRunInput(context)` function when workflow inputs need more control.
 
-```ts
-import {
-  createRunningHubClient,
-  isRunningHubError
-} from "aigc-provider-runtime-kit/runninghub";
+### RunningHub key concurrency
 
-const controller = new AbortController();
-
-try {
-  await client.runTask({
-    targetType: "workflow",
-    runTargetId: "workflow-id",
-    workflowId: "workflow-id",
-    nodeInfoList: [],
-    signal: controller.signal
-  });
-} catch (error) {
-  if (isRunningHubError(error)) {
-    console.error(error.code, error.stage, error.retryable);
-  }
-}
-```
-
-The client defaults to a 30-minute task timeout and a 2-minute timeout per HTTP request. Override them with `taskTimeoutMs` and `requestTimeoutMs` when creating the client, or use `timeoutMs` for one task.
-
-Use key-pool helpers with a Redis-like runtime:
+The key-pool helper works with a Redis-like runtime and prevents a key from exceeding its configured concurrency:
 
 ```ts
 import {
@@ -260,24 +397,15 @@ const acquired = await acquireRunningHubKey({
   defaultConcurrency: 2,
   leaseSeconds: 60 * 60,
   runtime: redisLikeRuntime,
-  keys: [
-    {
-      id: "key-1",
-      note: "primary",
-      apiKey: process.env.RUNNINGHUB_API_KEY,
-      maxConcurrency: 2,
-      enabled: true,
-      isDefault: true
-    }
-  ]
+  keys
 });
 
-if (!acquired.acquired) {
-  throw new Error(`No RunningHub key available: ${acquired.reason}`);
+if (!acquired.acquired || !acquired.key) {
+  throw new Error(acquired.reason);
 }
 
 try {
-  // Run provider task with acquired.key.apiKey.
+  // Execute with acquired.key.apiKey.
 } finally {
   await releaseRunningHubKey({
     providerId: "runninghub",
@@ -287,111 +415,178 @@ try {
 }
 ```
 
-Choose a lease long enough for the longest expected task. Each successful acquisition refreshes the lease, and the default is one hour.
+Set the lease longer than the longest expected task. The default lease is one hour.
 
-## What You Can Build With It
+## Model schemas and UI metadata
 
-- A multi-provider AIGC backend.
-- A provider/model management admin panel.
-- A visual canvas node runtime for image, video, audio, or workflow generation.
-- A RunningHub App/Workflow gateway.
-- A worker service that dispatches provider jobs with API key concurrency limits.
-- A shared provider runtime layer reused across multiple products.
+Parameter schemas can drive both runtime validation and admin/canvas UI controls:
 
-## What This Kit Does Not Do
+```ts
+import {
+  defaultParameterSchemaForModel,
+  uiMetadataFromSchema
+} from "aigc-provider-runtime-kit/core";
 
-- It does not store API keys or credentials.
-- It does not provide a hosted API service.
-- It does not include a database schema or migration system.
-- It does not implement user permissions, billing, or quota policies.
-- It does not ship an admin UI.
-- It does not hide RunningHub or provider-specific business rules from your host application.
+const schema = defaultParameterSchemaForModel(
+  "video",
+  "video-model",
+  "custom"
+);
 
-## Recommended Architecture
+const metadata = uiMetadataFromSchema(schema, "video");
 
-```text
-Your app/admin UI
-  -> your database and permission model
-  -> your job queue or worker
-  -> aigc-provider-runtime-kit
-  -> provider APIs such as RunningHub or OpenAI-compatible services
+console.log(metadata.aspectRatios);
+console.log(metadata.durationOptions);
+console.log(metadata.inputCapabilities);
 ```
 
-Keep secrets and user permissions in your application. Use this package to normalize provider definitions, request contracts, task execution metadata, result extraction, and key-pool coordination.
+Runtime validation supports:
 
-## Documentation
+- required fields;
+- string, number, integer, boolean, select/enum, and array types;
+- allowed options;
+- numeric minimum and maximum values;
+- maximum array lengths;
+- image, audio, video, first-frame, last-frame, and mask capabilities.
 
-- [Getting Started](./docs/getting-started.md)
-- [API Reference](./docs/api-reference.md)
-- [Roadmap](./docs/roadmap.md)
-- [Provider System Notes](./docs/systems/providers/README.md)
-- [RunningHub System Notes](./docs/systems/runninghub/README.md)
-- [Project Harness Notes](./docs/systems/harness/README.md)
-- [Contributing](./CONTRIBUTING.md)
-- [Security Policy](./SECURITY.md)
-- [Changelog](./CHANGELOG.md)
+## Custom adapters
 
-## Repository Layout
+Implement one small interface to connect another provider:
+
+```ts
+import type { ProviderAdapter } from "aigc-provider-runtime-kit/runtime";
+
+export const customAdapter: ProviderAdapter = {
+  id: "custom-provider",
+
+  supports(provider, model) {
+    return provider.id === "custom-provider" && model.capability === "video";
+  },
+
+  async execute(context) {
+    const raw = await callVendorApi({
+      model: context.model.modelId,
+      input: context.input,
+      signal: context.signal
+    });
+
+    await context.emitProgress({ status: "completed", percent: 100 });
+
+    return {
+      status: "completed",
+      providerId: context.provider.id,
+      modelId: context.model.id,
+      capability: context.model.capability,
+      taskId: raw.taskId,
+      outputs: raw.urls.map((url: string) => ({ type: "video", url })),
+      raw
+    };
+  }
+};
+```
+
+## Error model
+
+| Error | Scope |
+| --- | --- |
+| `ProviderRegistryValidationError` | Invalid provider/model registry configuration |
+| `ProviderRuntimeError` | Missing/disabled config, invalid input, adapter selection/failure, timeout/cancellation |
+| `OpenAICompatibleError` | OpenAI-compatible HTTP, abort, or JSON response failure |
+| `RunningHubError` | RunningHub configuration, submit, poll, timeout, status, or output failure |
+
+Each error family includes a type guard:
+
+```ts
+if (isProviderRuntimeError(error)) {
+  console.error(error.code, error.providerId, error.modelId, error.issues);
+}
+```
+
+Adapter errors are preserved as `cause` on `ProviderRuntimeError`.
+
+## Recommended architecture
+
+```mermaid
+flowchart LR
+    A[API / Worker / CLI] --> B[Your auth, quota, and task layer]
+    B --> C[AIGC Provider Runtime Kit]
+    C --> D[OpenAI-compatible APIs]
+    C --> E[RunningHub]
+    C --> F[Custom adapters]
+    B --> G[(Your database / queue)]
+```
+
+Keep secrets and product policies outside the SDK. Inject already configured clients into adapters.
+
+## Common use cases
+
+- multi-provider AIGC backends;
+- provider and model management systems;
+- visual workflow or canvas runtimes;
+- image/video generation workers;
+- RunningHub App/Workflow gateways;
+- reusable provider infrastructure shared across products.
+
+## Repository layout
 
 ```text
-packages/core/        Provider, model, schema, and request body primitives
-packages/runninghub/  RunningHub catalog, descriptor, client, and key-pool helpers
-packages/runtime/     Combined public exports
-examples/             Minimal usage examples
-tests/                Node built-in test coverage for public behavior
-docs/                 Harness, governance, system docs, specs, and plans
-scripts/              Local verification contracts
-.github/workflows/    GitHub CI verification
+packages/core/        Provider contracts, registry, schemas, multipart, retry, OpenAI-compatible client
+packages/runninghub/  RunningHub descriptors, client, output extraction, and key-pool helpers
+packages/runtime/     Unified runtime contracts, validation, execution, and adapters
+examples/             Minimal TypeScript usage examples
+tests/                Public behavior and contract tests
+docs/                 System docs, API reference, governance, roadmap, and work logs
+scripts/              Harness and installed-package verification
+.github/workflows/    GitHub Actions CI
 ```
 
 ## Local Development
 
 ```bash
+git clone https://github.com/Hhh2178/aigc-provider-runtime-kit.git
+cd aigc-provider-runtime-kit
 npm ci
-npm run harness:verify:project
-npm run type-check
-npm run build
-npm test
-npm run test:package
-```
-
-Use the full release gate before publishing or tagging:
-
-```bash
 npm run harness:verify:release
 ```
 
-## Harness
+Individual commands:
 
-This repository uses a lightweight doc-log Harness so future maintainers and AI agents can understand and verify changes without guessing:
+```bash
+npm run harness:verify:project  # Required repository/docs anchors
+npm run type-check              # Strict TypeScript validation
+npm run build                   # JavaScript, declarations, and source maps
+npm test                        # Node built-in test suite
+npm run test:package            # Pack, install, and import the real tarball
+```
 
-- `AGENTS.md` is the agent constitution.
-- `docs/INDEX.md` is the documentation router.
-- `docs/systems/` owns system contracts.
-- `docs/logbooks/` records audit evidence.
-- `scripts/verify-harness.mjs` checks required project anchors.
+The release gate must pass before merging, tagging, or publishing.
+
+## Documentation
+
+- [Getting started](./docs/getting-started.md)
+- [API reference](./docs/api-reference.md)
+- [Unified runtime architecture](./docs/systems/runtime/README.md)
+- [Provider system](./docs/systems/providers/README.md)
+- [RunningHub system](./docs/systems/runninghub/README.md)
+- [Roadmap](./docs/roadmap.md)
+- [Contributing](./CONTRIBUTING.md)
+- [Security policy](./SECURITY.md)
+- [Changelog](./CHANGELOG.md)
 
 ## Security
 
-Never commit provider API keys, RunningHub keys, `.env` files, private keys, server credentials, customer data, or real production configuration.
+Never commit API keys, `.env` files, private keys, production credentials, customer data, or server output.
 
-Host applications are responsible for:
+Host applications remain responsible for secret management, access control, egress policy, rate limits, quotas, audit retention, and incident response. See [SECURITY.md](./SECURITY.md).
 
-- Secret storage.
-- Permission checks.
-- Provider quotas.
-- Audit logs.
-- Network egress controls.
-- Incident response.
+## Project status
 
-See [SECURITY.md](./SECURITY.md) for details.
+Version `0.2.0` provides the unified runtime foundation. Planned work includes provider-specific video adapters, real-world provider fixtures, idempotency guidance, configuration loaders, and optional observability bridges. See [the roadmap](./docs/roadmap.md).
 
 ## Contributing
 
-Contributions are welcome. Please keep changes small, typed, tested, and framework-neutral. If you change public exports or runtime behavior, update the API reference and relevant system docs.
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow.
+Contributions are welcome. Keep public changes typed, tested, documented, and framework-neutral. See [CONTRIBUTING.md](./CONTRIBUTING.md).
 
 ## License
 
-MIT. See [LICENSE](./LICENSE).
+MIT © contributors. See [LICENSE](./LICENSE).
