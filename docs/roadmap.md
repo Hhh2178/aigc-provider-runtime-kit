@@ -1,6 +1,6 @@
 # Roadmap
 
-## Current Line: 0.1.x Foundation
+## Current Line: 0.2.x Unified Runtime
 
 Goal: provide stable, framework-neutral primitives that other AIGC products can reuse without copying provider-specific glue.
 
@@ -18,9 +18,13 @@ Completed:
 - OpenAI-compatible chat/image/custom JSON client.
 - Opt-in retry/backoff policy helper.
 - Installed-package consumer smoke testing.
+- Unified provider adapter and execution contracts.
+- Standard execution outputs, usage, errors, timeout/cancellation, and lifecycle events.
+- OpenAI-compatible and RunningHub runtime adapters.
+- Runtime validation for model parameters and input capabilities.
 - Harness, CI, docs, and unit tests.
 
-## 0.2.x Candidate Work
+## 0.3.x Candidate Work
 
 - Add provider adapter examples for vendor-specific video APIs.
 - Add fixtures for common RunningHub App and Workflow shapes.
@@ -28,11 +32,11 @@ Completed:
 - Add optional host-app adapter examples for Express/Fastify without making them core dependencies.
 - Add package export compatibility tests.
 
-## 0.3.x Candidate Work
+## Later Candidate Work
 
 - Add environment/file loaders around the typed provider registry.
 - Add deeper validation for admin-edited model parameter schemas.
-- Add observability hooks for audit events, timing, provider status, and retry decisions.
+- Add optional OpenTelemetry/Sentry bridge examples on top of runtime events.
 - Add more complete key-pool strategies such as weighted dispatch and cooldown windows.
 
 ## Deferred Until Explicitly Needed

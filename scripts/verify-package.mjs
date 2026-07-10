@@ -52,9 +52,11 @@ try {
     'import * as runtime from "aigc-provider-runtime-kit";',
     'import * as core from "aigc-provider-runtime-kit/core";',
     'import * as runninghub from "aigc-provider-runtime-kit/runninghub";',
+    'import * as unified from "aigc-provider-runtime-kit/runtime";',
     'if (typeof runtime.createProviderRegistry !== "function") throw new Error("missing root export");',
     'if (typeof core.createOpenAICompatibleClient !== "function") throw new Error("missing core export");',
-    'if (typeof runninghub.createRunningHubClient !== "function") throw new Error("missing RunningHub export");'
+    'if (typeof runninghub.createRunningHubClient !== "function") throw new Error("missing RunningHub export");',
+    'if (typeof unified.createProviderRuntime !== "function") throw new Error("missing runtime export");'
   ].join("\n"));
   await run(process.execPath, [join(temporary, "consumer.mjs")], { cwd: temporary });
   console.log(`Package verification passed (${targets.size} entry targets, ${packageInfo.entryCount} packed files, installed consumer smoke test).`);

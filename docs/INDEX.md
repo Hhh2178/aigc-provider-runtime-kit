@@ -10,6 +10,7 @@ This file is the first-hop router for `aigc-provider-runtime-kit`.
 4. Read the relevant system document:
    - `docs/systems/providers/README.md`
    - `docs/systems/runninghub/README.md`
+   - `docs/systems/runtime/README.md`
    - `docs/systems/harness/README.md`
 5. For public API usage, read `docs/getting-started.md` and `docs/api-reference.md`.
 6. Check the latest daily log under `docs/logbooks/daily/`.
@@ -22,6 +23,7 @@ This file is the first-hop router for `aigc-provider-runtime-kit`.
 | Project overview | `README.md` |
 | Provider runtime architecture | `docs/systems/providers/README.md` |
 | RunningHub architecture | `docs/systems/runninghub/README.md` |
+| Unified runtime architecture | `docs/systems/runtime/README.md` |
 | Harness verification | `docs/systems/harness/README.md` |
 | Getting started | `docs/getting-started.md` |
 | Public API reference | `docs/api-reference.md` |

@@ -23,6 +23,7 @@ const requiredFiles = [
   "docs/systems/harness/README.md",
   "docs/systems/providers/README.md",
   "docs/systems/runninghub/README.md",
+  "docs/systems/runtime/README.md",
   "docs/systems/interface-documentation-template.md",
   "docs/superpowers/specs/2026-07-08-aigc-provider-runtime-kit-design.md",
   "docs/superpowers/plans/2026-07-08-aigc-provider-runtime-kit-implementation.md",
@@ -78,7 +79,7 @@ for (const command of ["npm ci", "npm run harness:verify:project", "npm run type
   if (!ci.includes(command)) failures.push(`CI missing command: ${command}`);
 }
 
-for (const testFile of ["tests/core.test.mjs", "tests/provider-runtime.test.mjs", "tests/runninghub.test.mjs"]) {
+for (const testFile of ["tests/core.test.mjs", "tests/provider-runtime.test.mjs", "tests/runninghub.test.mjs", "tests/runtime.test.mjs"]) {
   if (!existsSync(join(root, testFile))) failures.push(`Missing test file: ${testFile}`);
 }
 

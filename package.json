@@ -1,7 +1,7 @@
 {
   "name": "aigc-provider-runtime-kit",
-  "version": "0.1.0",
-  "description": "Provider and RunningHub runtime kit for AIGC applications: provider schemas, request builders, execution descriptors, clients, and key-pool dispatch.",
+  "version": "0.2.0",
+  "description": "Framework-neutral AIGC provider runtime with validated registries, unified adapters, standard outputs, and RunningHub/OpenAI-compatible clients.",
   "type": "module",
   "private": false,
   "license": "MIT",

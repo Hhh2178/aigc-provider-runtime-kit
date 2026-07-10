@@ -95,6 +95,36 @@ Provide key-pool concurrency helpers against a Redis-like runtime interface.
 
 Orders enabled keys by preferred key, default key, then other enabled keys.
 
+## Unified Runtime
+
+### `createProviderRuntime(options)`
+
+Creates the unified execution entrypoint. It resolves enabled provider/model records, validates model input, selects the first supporting adapter, propagates cancellation and timeout signals, emits lifecycle events, and normalizes provider/model identity in the result.
+
+### `ProviderAdapter`
+
+Adapters implement `supports(provider, model)` and `execute(context)`. Adapter context includes provider/model definitions, validated input, cancellation signal, timeout, metadata, and a progress emitter.
+
+### `createOpenAICompatibleAdapter(options)`
+
+Adapts the OpenAI-compatible client to unified runtime results. Chat text, image URLs/base64 data, and token usage are normalized automatically. Video/audio endpoints can be supplied through `endpoints`.
+
+### `createRunningHubAdapter(options)`
+
+Adapts a RunningHub client to the unified runtime. It supports a custom `resolveRunInput` function or model `advancedConfig.runninghub` with target IDs and an input `fieldMap`.
+
+### `validateProviderExecutionInput(model, input)`
+
+Validates required fields, scalar/array types, allowed options, numeric ranges, list maximums, and declared input capabilities.
+
+### `ProviderRuntimeError` and `isProviderRuntimeError(value)`
+
+Distinguish missing/disabled configuration, provider-model mismatch, invalid input, missing adapters, adapter failures, and aborted/timed-out executions.
+
+### Runtime events
+
+An optional `hooks.onEvent` handler receives started, validated, adapter-selected, progress, success, and failure events. Hook failures are isolated and never change execution behavior.
+
 ## Stability
 
-This is a `0.1.x` foundation API. Prefer wrapping package calls behind a host-app adapter if you need long-term compatibility before `1.0`.
+This is a `0.2.x` pre-1.0 API. The unified runtime is ready for application integration, but breaking improvements remain possible before `1.0`.
