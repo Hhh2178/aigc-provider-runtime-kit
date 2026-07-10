@@ -15,6 +15,10 @@ All notable changes to `aigc-provider-runtime-kit` are recorded here.
 - Configurable RunningHub key-pool leases.
 - Package export verification and release-safe npm package contents.
 - Tests for multipart data URLs, RunningHub execution failures/cancellation, and key-pool leases.
+- Provider/model registry validation with duplicate and referential-integrity checks.
+- Dependency-free OpenAI-compatible chat, image, and custom JSON client.
+- Opt-in exponential retry/backoff helper with jitter and cancellation.
+- Installed-tarball consumer smoke testing for published entrypoints.
 
 ## 0.1.0 - 2026-07-08
 

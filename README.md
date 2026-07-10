@@ -24,6 +24,9 @@ Most AIGC applications eventually need the same provider infrastructure:
 ## Features
 
 - **Provider contracts**: typed provider, model, capability, and parameter schema definitions.
+- **Provider registry**: validate provider/model configuration, reject duplicate or dangling references, and query enabled entries.
+- **OpenAI-compatible client**: call chat, image, or custom JSON endpoints without adding an SDK dependency.
+- **Reusable retry policy**: opt-in exponential backoff with jitter, cancellation, and retry hooks.
 - **UI-ready model metadata**: convert schemas into aspect ratio, size, duration, resolution, and reference-input metadata.
 - **Request body helpers**: build multipart `FormData` payloads from scalar fields, remote URLs, or data URLs.
 - **RunningHub catalog helpers**: normalize RunningHub App/Workflow records into reusable host-app entries.
@@ -78,6 +81,55 @@ const ui = uiMetadataFromSchema(schema, "image");
 console.log(ui.defaultAspectRatio);
 console.log(ui.maxReferenceImages);
 ```
+
+Validate and query provider configuration before using it:
+
+```ts
+import { createProviderRegistry } from "aigc-provider-runtime-kit/core";
+
+const registry = createProviderRegistry({
+  providers: [{
+    id: "openai-compatible",
+    name: "OpenAI-compatible API",
+    baseUrl: "https://api.example.com/v1",
+    protocol: "openai",
+    enabled: true
+  }],
+  models: [{
+    id: "image-primary",
+    providerId: "openai-compatible",
+    modelId: "image-model",
+    displayName: "Primary image model",
+    capability: "image",
+    enabled: true
+  }]
+});
+
+console.log(registry.listModels({ enabledOnly: true }));
+```
+
+Call an OpenAI-compatible endpoint with optional retry/backoff:
+
+```ts
+import { createOpenAICompatibleClient } from "aigc-provider-runtime-kit/core";
+
+const client = createOpenAICompatibleClient({
+  baseUrl: "https://api.example.com/v1",
+  apiKey: process.env.PROVIDER_API_KEY,
+  retry: {
+    maxAttempts: 3,
+    baseDelayMs: 500,
+    maxDelayMs: 5000
+  }
+});
+
+const response = await client.createImage({
+  model: "image-model",
+  prompt: "A cinematic tropical city"
+});
+```
+
+Retries are opt-in. The client retries only retryable network failures, HTTP 408/409/429 responses, and 5xx responses when a retry policy is supplied.
 
 Build a RunningHub execution descriptor:
 

@@ -78,7 +78,7 @@ for (const command of ["npm ci", "npm run harness:verify:project", "npm run type
   if (!ci.includes(command)) failures.push(`CI missing command: ${command}`);
 }
 
-for (const testFile of ["tests/core.test.mjs", "tests/runninghub.test.mjs"]) {
+for (const testFile of ["tests/core.test.mjs", "tests/provider-runtime.test.mjs", "tests/runninghub.test.mjs"]) {
   if (!existsSync(join(root, testFile))) failures.push(`Missing test file: ${testFile}`);
 }
 

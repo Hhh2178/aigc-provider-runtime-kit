@@ -39,6 +39,24 @@ Checks whether a provider request mode should be treated as multipart form data.
 
 Builds a `FormData` request body from scalar fields and file URL or data URL fields.
 
+### `validateProviderDefinition(value)` and `validateProviderModelDefinition(value, providerIds?)`
+
+Return structured validation results with field paths, issue codes, and messages for provider or model configuration.
+
+### `createProviderRegistry(input)`
+
+Creates an immutable provider/model registry after validating URLs, protocols, capabilities, duplicate IDs, and provider references. Invalid input throws `ProviderRegistryValidationError` with an `issues` array.
+
+### `withRetry(operation, options?)`
+
+Runs an asynchronous operation with bounded exponential backoff, optional jitter, cancellation, custom retry decisions, and retry callbacks.
+
+### `createOpenAICompatibleClient(options)`
+
+Creates a dependency-free JSON client for OpenAI-compatible APIs. It exposes `request(path, body)`, `createChatCompletion(body)`, and `createImage(body)`. Request timeout, cancellation, custom headers, and opt-in retry policy are supported.
+
+Failures use `OpenAICompatibleError`; `isOpenAICompatibleError(value)` safely narrows unknown errors.
+
 ## RunningHub Helpers
 
 ### `normalizeRunningHubInputSlots(fields)`
