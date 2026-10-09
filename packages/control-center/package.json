@@ -1,0 +1,38 @@
+{
+  "name": "@aigc-kit/control-center",
+  "version": "0.1.0",
+  "description": "Provider and RunningHub management control center backend built on aigc-provider-runtime-kit.",
+  "type": "module",
+  "private": true,
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "start": "node dist/index.js",
+    "test:control-center": "node --test tests/*.test.mjs"
+  },
+  "dependencies": {
+    "aigc-provider-runtime-kit": "*",
+    "pg": "^8.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pg": "^8.11.10",
+    "typescript": "^5.5.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    }
+  }
+}

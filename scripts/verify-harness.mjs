@@ -24,12 +24,16 @@ const requiredFiles = [
   "docs/systems/providers/README.md",
   "docs/systems/runninghub/README.md",
   "docs/systems/runtime/README.md",
+  "docs/systems/control-center/README.md",
   "docs/systems/interface-documentation-template.md",
   "docs/superpowers/specs/2026-07-08-aigc-provider-runtime-kit-design.md",
   "docs/superpowers/plans/2026-07-08-aigc-provider-runtime-kit-implementation.md",
-  "packages/core/src/index.ts",
-  "packages/runninghub/src/index.ts",
-  "packages/runtime/src/index.ts"
+  "packages/kit/src/core/index.ts",
+  "packages/kit/src/runninghub/index.ts",
+  "packages/kit/src/runtime/index.ts",
+  "packages/control-center/src/index.ts",
+  "packages/control-center/src/migrations.ts",
+  "packages/control-center/tests"
 ];
 
 const requiredPackageScripts = [
@@ -55,18 +59,25 @@ for (const script of requiredPackageScripts) {
   if (!packageJson.scripts?.[script]) failures.push(`Missing package script: ${script}`);
 }
 
+const kitPackageJsonPath = join(root, "packages/kit/package.json");
+const kitPackageJson = existsSync(kitPackageJsonPath) ? JSON.parse(readFileSync(kitPackageJsonPath, "utf8")) : {};
+if (kitPackageJson.name !== "aigc-provider-runtime-kit") {
+  failures.push("packages/kit must keep the published package name aigc-provider-runtime-kit");
+}
+for (const exportPath of [".", "./core", "./runninghub", "./runtime"]) {
+  if (!kitPackageJson.exports?.[exportPath]?.types) failures.push(`kit exports missing types for: ${exportPath}`);
+  if (!kitPackageJson.exports?.[exportPath]?.import) failures.push(`kit exports missing import for: ${exportPath}`);
+}
+for (const field of ["main", "types", "files", "sideEffects", "engines", "repository", "bugs", "homepage"]) {
+  if (kitPackageJson[field] === undefined) failures.push(`kit package.json missing package maturity field: ${field}`);
+}
+if (kitPackageJson.dependencies && Object.keys(kitPackageJson.dependencies).length > 0) {
+  failures.push("kit package must remain dependency-free at runtime");
+}
+
 const readme = existsSync(join(root, "README.md")) ? readFileSync(join(root, "README.md"), "utf8") : "";
 for (const anchor of ["Provider", "RunningHub", "Harness", "Security", "Package Entrypoints", "Local Development"]) {
   if (!readme.includes(anchor)) failures.push(`README missing anchor: ${anchor}`);
-}
-
-for (const exportPath of [".", "./core", "./runninghub", "./runtime"]) {
-  if (!packageJson.exports?.[exportPath]?.types) failures.push(`package exports missing types for: ${exportPath}`);
-  if (!packageJson.exports?.[exportPath]?.import) failures.push(`package exports missing import for: ${exportPath}`);
-}
-
-for (const field of ["main", "types", "files", "sideEffects", "engines", "repository", "bugs", "homepage"]) {
-  if (packageJson[field] === undefined) failures.push(`package.json missing package maturity field: ${field}`);
 }
 
 const gitignore = existsSync(join(root, ".gitignore")) ? readFileSync(join(root, ".gitignore"), "utf8") : "";
@@ -79,7 +90,12 @@ for (const command of ["npm ci", "npm run harness:verify:project", "npm run type
   if (!ci.includes(command)) failures.push(`CI missing command: ${command}`);
 }
 
-for (const testFile of ["tests/core.test.mjs", "tests/provider-runtime.test.mjs", "tests/runninghub.test.mjs", "tests/runtime.test.mjs"]) {
+for (const testFile of [
+  "packages/kit/tests/core.test.mjs",
+  "packages/kit/tests/provider-runtime.test.mjs",
+  "packages/kit/tests/runninghub.test.mjs",
+  "packages/kit/tests/runtime.test.mjs"
+]) {
   if (!existsSync(join(root, testFile))) failures.push(`Missing test file: ${testFile}`);
 }
 

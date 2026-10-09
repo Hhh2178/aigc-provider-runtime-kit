@@ -1,0 +1,62 @@
+{
+  "name": "aigc-provider-runtime-kit",
+  "version": "0.3.0",
+  "description": "Framework-neutral AIGC provider runtime with validated registries, unified adapters, standard outputs, and RunningHub/OpenAI-compatible clients.",
+  "type": "module",
+  "private": false,
+  "license": "MIT",
+  "main": "./dist/runtime/index.js",
+  "types": "./dist/runtime/index.d.ts",
+  "sideEffects": false,
+  "engines": {
+    "node": ">=22"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Hhh2178/aigc-provider-runtime-kit.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Hhh2178/aigc-provider-runtime-kit/issues"
+  },
+  "homepage": "https://github.com/Hhh2178/aigc-provider-runtime-kit#readme",
+  "keywords": [
+    "aigc",
+    "provider",
+    "runninghub",
+    "ai-agents",
+    "runtime",
+    "typescript"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "type-check": "tsc -p tsconfig.json --noEmit",
+    "test:kit": "node --test tests/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
+    },
+    "./core": {
+      "types": "./dist/core/index.d.ts",
+      "import": "./dist/core/index.js"
+    },
+    "./runninghub": {
+      "types": "./dist/runninghub/index.d.ts",
+      "import": "./dist/runninghub/index.js"
+    },
+    "./runtime": {
+      "types": "./dist/runtime/index.d.ts",
+      "import": "./dist/runtime/index.js"
+    }
+  }
+}

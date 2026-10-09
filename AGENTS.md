@@ -5,7 +5,7 @@
 - Project name: `aigc-provider-runtime-kit`
 - Active root: `D:\codex\多API服务商管理后台`
 - GitHub target: `Hhh2178/aigc-provider-runtime-kit`
-- Purpose: reusable Provider and RunningHub runtime kit for AIGC applications.
+- Purpose: reusable Provider and RunningHub runtime kit for AIGC applications, **plus the provider/RunningHub management control-center backend (packages/control-center) extracted from the production canvas application (无限画布 2.0 / xinghuan)**. The control center is the deployable backend other AIGC products integrate with; the SDK remains dependency-free.
 
 ## First Reading Order
 
@@ -79,3 +79,8 @@ Pause before:
 - Adding real provider credentials.
 - Adding a database or hosted service dependency.
 - Pulling code from private projects that may contain secrets or customer-specific logic.
+
+Approved standing decisions (no longer need re-asking):
+
+- PostgreSQL is the control-center persistence (approved 2026-10-09); Redis may be added with the phase-2 worker. Do not add other hosted-service dependencies without asking.
+- The control center owns a neutral cc_* schema; do not copy the source application table names or user/business tables.

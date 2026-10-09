@@ -1,5 +1,5 @@
-import { defaultParameterSchemaForModel } from "../../packages/core/src/index.js";
-import { buildRunningHubExecutionDescriptor } from "../../packages/runninghub/src/index.js";
+import { defaultParameterSchemaForModel } from "../../packages/kit/src/core/index.js";
+import { buildRunningHubExecutionDescriptor } from "../../packages/kit/src/runninghub/index.js";
 
 const schema = defaultParameterSchemaForModel("image", "gpt-image-2", "openai");
 const execution = buildRunningHubExecutionDescriptor({

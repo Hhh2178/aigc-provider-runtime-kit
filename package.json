@@ -1,22 +1,13 @@
 {
-  "name": "aigc-provider-runtime-kit",
-  "version": "0.2.0",
-  "description": "Framework-neutral AIGC provider runtime with validated registries, unified adapters, standard outputs, and RunningHub/OpenAI-compatible clients.",
+  "name": "aigc-provider-runtime-kit-workspace",
+  "version": "0.3.0",
+  "description": "Monorepo: reusable AIGC provider runtime SDK plus the provider/RunningHub control-center backend.",
   "type": "module",
-  "private": false,
+  "private": true,
   "license": "MIT",
-  "main": "./dist/packages/runtime/src/index.js",
-  "types": "./dist/packages/runtime/src/index.d.ts",
-  "sideEffects": false,
   "engines": {
     "node": ">=22"
   },
-  "files": [
-    "dist/packages",
-    "README.md",
-    "LICENSE",
-    "CHANGELOG.md"
-  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Hhh2178/aigc-provider-runtime-kit.git"
@@ -25,44 +16,19 @@
     "url": "https://github.com/Hhh2178/aigc-provider-runtime-kit/issues"
   },
   "homepage": "https://github.com/Hhh2178/aigc-provider-runtime-kit#readme",
-  "keywords": [
-    "aigc",
-    "provider",
-    "runninghub",
-    "ai-agents",
-    "runtime",
-    "typescript"
+  "workspaces": [
+    "packages/kit",
+    "packages/control-center"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "prepack": "npm run build",
-    "type-check": "tsc -p tsconfig.json --noEmit",
-    "test": "npm run build && node --test tests/*.test.mjs",
-    "test:package": "npm run build && node scripts/verify-package.mjs",
+    "build": "npm run build -w aigc-provider-runtime-kit && npm run build -w @aigc-kit/control-center",
+    "type-check": "npm run build -w aigc-provider-runtime-kit && npm run type-check -w aigc-provider-runtime-kit && npm run type-check -w @aigc-kit/control-center",
+    "test": "npm run build -w aigc-provider-runtime-kit && node --test packages/kit/tests/*.test.mjs && npm run build -w @aigc-kit/control-center && node --test packages/control-center/tests/*.test.mjs",
+    "test:package": "npm run build -w aigc-provider-runtime-kit && node scripts/verify-package.mjs",
     "verify:harness": "node scripts/verify-harness.mjs",
     "harness:verify:project": "npm run verify:harness",
     "harness:verify:workspace": "npm run type-check && npm test",
-    "harness:verify:release": "npm run verify:harness && npm run type-check && npm test && npm run test:package"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.0"
-  },
-  "exports": {
-    ".": {
-      "types": "./dist/packages/runtime/src/index.d.ts",
-      "import": "./dist/packages/runtime/src/index.js"
-    },
-    "./core": {
-      "types": "./dist/packages/core/src/index.d.ts",
-      "import": "./dist/packages/core/src/index.js"
-    },
-    "./runninghub": {
-      "types": "./dist/packages/runninghub/src/index.d.ts",
-      "import": "./dist/packages/runninghub/src/index.js"
-    },
-    "./runtime": {
-      "types": "./dist/packages/runtime/src/index.d.ts",
-      "import": "./dist/packages/runtime/src/index.js"
-    }
+    "harness:verify:release": "npm run verify:harness && npm run type-check && npm test && npm run test:package",
+    "prepack": "npm run build -w aigc-provider-runtime-kit"
   }
 }

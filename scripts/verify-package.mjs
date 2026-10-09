@@ -5,9 +5,9 @@ import { join } from "node:path";
 import { promisify } from "node:util";
 
 const run = promisify(execFile);
-const root = new URL("..", import.meta.url);
+const kitRoot = new URL("../packages/kit/", import.meta.url);
 
-const pkg = JSON.parse(await readFile(new URL("../package.json", import.meta.url), "utf8"));
+const pkg = JSON.parse(await readFile(new URL("../packages/kit/package.json", import.meta.url), "utf8"));
 const targets = new Set();
 
 for (const entry of Object.values(pkg.exports || {})) {
@@ -20,19 +20,20 @@ if (typeof pkg.main === "string") targets.add(pkg.main);
 if (typeof pkg.types === "string") targets.add(pkg.types);
 
 for (const target of targets) {
-  await access(new URL(`../${target.replace(/^\.\//, "")}`, import.meta.url));
+  await access(new URL(`./${target.replace(/^\.\//, "")}`, kitRoot));
 }
 
-if (!Array.isArray(pkg.files) || !pkg.files.includes("dist/packages")) {
-  throw new Error("package files must include dist/packages");
+if (!Array.isArray(pkg.files) || !pkg.files.includes("dist")) {
+  throw new Error("package files must include dist");
 }
 
-if (pkg.files.includes("dist")) {
-  throw new Error("package files must not include all of dist");
+if (pkg.files.includes("dist/packages")) {
+  throw new Error("package files layout has changed: use dist only");
 }
 
 const temporary = await mkdtemp(join(tmpdir(), "aigc-provider-runtime-kit-"));
 const npm = process.platform === "win32" ? "npm.cmd" : "npm";
+const shellNeeded = process.platform === "win32";
 const childEnvironment = {
   ...process.env,
   HOME: temporary,
@@ -40,14 +41,14 @@ const childEnvironment = {
 };
 
 try {
-  const packed = await run(npm, ["pack", "--json", "--pack-destination", temporary, "--cache", join(temporary, "npm-cache")], { cwd: root, env: childEnvironment });
+  const packed = await run(npm, ["pack", "--json", "--pack-destination", temporary, "--cache", join(temporary, "npm-cache")], { cwd: kitRoot, env: childEnvironment, shell: shellNeeded });
   const packageInfo = JSON.parse(packed.stdout)[0];
   const tarball = join(temporary, packageInfo.filename);
   const packagedPaths = packageInfo.files.map((file) => file.path);
   if (packagedPaths.some((path) => path.includes("examples"))) throw new Error("published package must not contain compiled examples");
 
   await writeFile(join(temporary, "package.json"), JSON.stringify({ private: true, type: "module" }));
-  await run(npm, ["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", join(temporary, "npm-cache")], { cwd: temporary, env: childEnvironment });
+  await run(npm, ["install", tarball, "--ignore-scripts", "--no-audit", "--no-fund", "--no-package-lock", "--cache", join(temporary, "npm-cache")], { cwd: temporary, env: childEnvironment, shell: shellNeeded });
   await writeFile(join(temporary, "consumer.mjs"), [
     'import * as runtime from "aigc-provider-runtime-kit";',
     'import * as core from "aigc-provider-runtime-kit/core";',
