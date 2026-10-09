@@ -46,4 +46,12 @@
 
 ## Next step
 
-阶段 2（能跑任务）：任务表 + 提交/查询 API + Redis 队列 + worker + 全量协议适配器移植，并补 PG 集成测试。
+已同日完成阶段 2 切片 A（见上方 Update）。下一步：阶段 2（能跑任务）：任务表 + 提交/查询 API + Redis 队列 + worker + 全量协议适配器移植，并补 PG 集成测试。
+
+## Update: phase 2 slice A delivered same-day (2026-10-09)
+
+- 任务框架 + 任务 API + 任务 worker（PG SKIP LOCKED 队列，未引入 Redis——队列与并发窗口以 PG 原子领取 + 声明式 slot 实现，Redis key 并发窗保持路线图增强项）；
+- 执行器先接 openai 系与 RunningHub catalog 两条已验证链路；apimart/aicopy/grsai/volcengine/gemini 显式 adapter_not_ported。
+- 新增 32 个中控测试（task-machine/task-submit/suite 合计 32）。
+- Next: 适配器全量移植（apimart/grsai/aicopy 优先）+ PG 集成测试（CC_TEST_DATABASE_URL 触发）。
+

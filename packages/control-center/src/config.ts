@@ -10,6 +10,14 @@ export interface ControlCenterConfig {
   /** Optional allowed origin for CORS; empty disables CORS headers. */
   corsOrigin: string;
   tenantId: string;
+  /**
+   * Machine token for the task API (/api/tasks*). When set, host applications may
+   * submit/poll/cancel tasks with `Authorization: Bearer <token>` instead of an
+   * admin session. Empty value falls those routes back to admin sessions only.
+   */
+  taskApiToken: string;
+  /** Default worker claim slot count when started via createTaskWorker. */
+  workerConcurrency: number;
   log: (message: string) => void;
   warn: (message: string) => void;
 }
@@ -33,6 +41,8 @@ export function readConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Control
     sessionTtlHours: clampNumber(Number(env.CC_SESSION_TTL_HOURS ?? 72), 1, 24 * 30, 72),
     corsOrigin: String(env.CC_CORS_ORIGIN || "").trim(),
     tenantId: String(env.CC_TENANT_ID || "default").trim().slice(0, 80) || "default",
+    taskApiToken: String(env.CC_TASK_API_TOKEN || "").trim(),
+    workerConcurrency: clampNumber(Number(env.CC_WORKER_CONCURRENCY ?? 4), 1, 64, 4),
     log: (message: string) => console.log(message),
     warn: (message: string) => console.warn(message)
   };

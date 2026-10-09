@@ -53,6 +53,12 @@ export function readCookie(request: IncomingMessage, name: string): string {
   return "";
 }
 
+export function readBearerToken(request: IncomingMessage): string {
+  const header = String(request.headers.authorization || "");
+  const match = header.match(/^Bearers+(.+)$/i);
+  return match?.[1]?.trim() || "";
+}
+
 export function buildSessionCookie(request: IncomingMessage, sessionId: string) {
   const host = String(request.headers.host || "").split(":")[0];
   return [

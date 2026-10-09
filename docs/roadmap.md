@@ -38,6 +38,18 @@ Completed (2026-10-09):
 - 执行期产物物化（下载到宿主存储）与 task-runtime 投影事件。
 - 宿主接入形态定型：HTTP API 与 SDK 两种消费方式。
 
+Completed (2026-10-09, phase 2 slice A):
+- 任务框架落地：cc_tasks/cc_task_events 迁移、PG SKIP LOCKED 原子领取队列、幂等键、心跳 patch、
+  stale reaper、任务事件流（task.created/claimed/heartbeat/succeeded/failed/cancelled/requeued）。
+- 任务 API：POST /api/tasks、GET /api/tasks/:id、POST /api/tasks/:id/cancel、GET /api/admin/tasks；
+  机器令牌 CC_TASK_API_TOKEN 鉴权（未配置时回落 admin 会话）。
+- worker：npm run start:worker -w @aigc-kit/control-center（并发槽、任务超时 AbortSignal、协议分发）。
+- 执行器：openai 系（chat/image/提交加轮询的 video/audio）+ RunningHub catalog 提交轮询
+  （复用 kit 的 createRunningHubClient、app/workflow 双模式、心跳投影）；apimart/aicopy/grsai/
+  volcengine/gemini 返回明确的 adapter_not_ported 失败类别，随 0.4.x 后续切片移植。
+- 提交解析层（task-submit）：providerId+modelId / modelRecordId / runninghub.catalogId 三种寻址，
+  参数经 kit runtime validateProviderExecutionInput 校验，RH 必填槽校验与 nodeInfoList 映射。
+
 ## Later candidate work
 
 - 成本账本与用量统计（修复源项目 RH 目录任务恒 unpriced 的问题；providerUsage 入账）。

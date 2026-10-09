@@ -2,6 +2,22 @@
 
 All notable changes to `aigc-provider-runtime-kit` are recorded here.
 
+## 0.3.1 - 2026-10-09
+
+### Added
+
+- Task framework phase-2 slice A in the control center: `cc_tasks`/`cc_task_events` migrations,
+  PG SKIP LOCKED atomic claim queue, idempotency keys, heartbeat patching, stale-running reaper,
+  task event stream.
+- Task HTTP API (`POST /api/tasks`, `GET /api/tasks/:id`, `POST /api/tasks/:id/cancel`, admin
+  list) with machine-token auth (`CC_TASK_API_TOKEN`) that degrades to admin sessions when unset.
+- Task worker (`npm run start:worker -w @aigc-kit/control-center`) with claim slots, task timeout
+  AbortSignal, stale reaper, and protocol dispatch: openai-family chat/image/video(poll)/audio and
+  RunningHub catalog submit/poll via the kit client. Remaining production protocols
+  (apimart/aicopy/grsai/volcengine/gemini) fail explicitly with `adapter_not_ported` until the
+  next slice.
+- `start:worker` npm script and config knobs (`CC_TASK_API_TOKEN`, `CC_WORKER_CONCURRENCY`).
+
 ## 0.3.0 - 2026-10-09
 
 ### Changed

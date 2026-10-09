@@ -102,5 +102,40 @@ create index if not exists idx_cc_sessions_user_id on cc_sessions(user_id);
 create index if not exists idx_cc_sessions_expires on cc_sessions(expires_at);
 create index if not exists idx_cc_audit_logs_created_at on cc_audit_logs(created_at desc);
 `
+  },
+  {
+    id: "002_tasks.sql",
+    sql: `
+create table if not exists cc_tasks (
+  id text primary key,
+  tenant_id text not null default 'default',
+  capability text not null check (capability in ('chat', 'image', 'video', 'audio')),
+  status text not null default 'queued' check (status in ('queued', 'running', 'succeeded', 'failed', 'cancelled')),
+  provider_id text not null,
+  model_record_id text,
+  protocol text not null default '',
+  claimed_by text not null default '',
+  attempts integer not null default 0,
+  payload jsonb not null default '{}'::jsonb,
+  result jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  started_at timestamptz,
+  finalized_at timestamptz
+);
+
+create table if not exists cc_task_events (
+  id text primary key,
+  task_id text not null references cc_tasks(id) on delete cascade,
+  type text not null,
+  detail jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_cc_tasks_status on cc_tasks(status, created_at);
+create index if not exists idx_cc_tasks_tenant on cc_tasks(tenant_id, created_at desc);
+create index if not exists idx_cc_tasks_claim on cc_tasks(status, id) where status = 'queued';
+create index if not exists idx_cc_task_events_task on cc_task_events(task_id, created_at);
+`
   }
 ];
