@@ -118,11 +118,14 @@ test("openai image submissions validate model capability reuse and schema", asyn
     /与任务类型 chat 不匹配/
   );
 
-  const unported = model({ protocolOverride: "aicopy" });
+  const geminiChat = model({ protocolOverride: "gemini", capability: "chat", parameterSchema: "{\"prompt\":{\"type\":\"string\",\"required\":true}}" });
   await assert.rejects(
-    resolveTaskSubmit({ capability: "video", body: { modelRecordId: "prov-image-flux", input: { prompt: "x" } } }, deps(provider(), unported)),
-    /尚未移植/
+    resolveTaskSubmit({ capability: "image", body: { modelRecordId: "prov-image-flux", input: { prompt: "x" } } }, deps(provider(), geminiChat)),
+    /与任务类型 image 不匹配/
   );
+  const aicopyVideo = model({ protocolOverride: "aicopy", capability: "video" });
+  const aicopy = await resolveTaskSubmit({ capability: "video", body: { modelRecordId: "prov-image-flux", input: { prompt: "x" } } }, deps(provider(), aicopyVideo));
+  assert.equal(aicopy.protocol, "aicopy");
 
   const disabled = model({ enabled: false });
   await assert.rejects(

@@ -16,6 +16,13 @@ import {
   pollModelScopeImageTask
 } from "./adapters/apimart.js";
 import { createGrsaiImageClient } from "./adapters/grsai.js";
+import {
+  createAicopyVideoAdapterPayload,
+  extractAicopyTask,
+  pollAicopyVideoTask,
+  resolveAicopyRequestContractEnabled
+} from "./adapters/aicopy.js";
+import { executeGeminiChat } from "./adapters/gemini.js";
 
 export interface ProviderSecretView {
   id: string;
@@ -55,7 +62,7 @@ export class TaskAdapterNotPortedError extends Error {
   }
 }
 
-const OPENAI_FAMILY = new Set(["openai", "custom"]);
+const OPENAI_FAMILY = new Set(["openai", "custom", "volcengine"]);
 
 /**
  * Executes one claimed task by protocol. The contract mirrors the production
@@ -88,6 +95,17 @@ export async function executeTask(input: TaskExecutionInput, codec: SecretCodec)
       if (model.capability === "video") return await executeOpenAiVideo(input);
       if (model.capability === "audio") return await executeOpenAiAudio(input);
       throw new Error(`不支持的任务能力: ${model.capability}`);
+    }
+    if (protocol === "aicopy") {
+      if (!model) throw new Error("缺少模型记录");
+      if (model.capability === "video") return await executeAicopyVideo(input);
+      if (model.capability === "chat") return await executeOpenAiChat(input);
+      throw new Error(`aicopy 协议目前仅支持 video/chat 任务（${model.capability} 不可用）`);
+    }
+    if (protocol === "gemini") {
+      if (!model) throw new Error("缺少模型记录");
+      if (model.capability === "chat") return await executeGeminiChatTask(input);
+      throw new Error("gemini 协议目前仅支持 chat 任务");
     }
     if (OPENAI_FAMILY.has(protocol)) {
       if (!model) throw new Error("缺少模型记录");
@@ -162,7 +180,7 @@ async function executeOpenAiImage(input: TaskExecutionInput): Promise<TaskExecut
   for (const item of Array.isArray(raw.data) ? raw.data : []) {
     const row = plainObject(item);
     if (safeText(row.url)) urls.push(safeText(row.url));
-    else if (safeText(row.b64_json)) dataUrls.push(toDataUrl(safeText(row.b64_json)));
+    else if (safeText(row.b64_json)) dataUrls.push(toDataUrl(safeText(row.b64_json), "image/png"));
   }
   const imageUrls = [...urls, ...dataUrls];
   if (imageUrls.length === 0) {
@@ -241,7 +259,7 @@ async function executeOpenAiAudio(input: TaskExecutionInput): Promise<TaskExecut
     return { status: "failed", result: { error: "上游返回成功但没有音频内容", failureCategory: "empty_output", runtimeStage: "failed" } };
   }
   const audioUrls: string[] = [];
-  for (const ref of refs) audioUrls.push(ref.startsWith("data:") ? ref : toDataUrl(ref));
+  for (const ref of refs) audioUrls.push(ref.startsWith("data:") ? ref : toDataUrl(ref, "audio/wav"));
   return {
     status: "succeeded",
     result: {
@@ -529,6 +547,72 @@ function clampBetween(value: unknown, min: number, max: number, fallback: number
   return Math.max(min, Math.min(max, Math.floor(numeric)));
 }
 
+// -- aicopy / gemini ---------------------------------------------------------
+
+async function executeAicopyVideo(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const { task, provider } = input;
+  const params = plainObject(task.payload.input);
+  const advanced = parseAdvancedConfig(input.model?.advancedConfig);
+  const contractEnabled = resolveAicopyRequestContractEnabled(advanced);
+  const submitPayload = createAicopyVideoAdapterPayload({
+    modelId: input.model?.modelId ?? "",
+    prompt: String(task.payload.prompt ?? ""),
+    ...(safeText(params.aspectRatio) ? { ratio: safeText(params.aspectRatio) } : {}),
+    ...(params.duration !== undefined ? { duration: params.duration as string | number } : {}),
+    ...(safeText(params.resolution) ? { resolution: safeText(params.resolution) } : {}),
+    images: referenceImagesFrom(params),
+    requestMapping: plainObject(advanced.requestMapping) as Record<string, string>,
+    requestValueTypes: plainObject(advanced.requestValueTypes) as Record<string, string>,
+    requestValueTemplates: plainObject(advanced.requestValueTemplates) as Record<string, string>,
+    requestContractEnabled: contractEnabled,
+    requestContract: advanced.requestContract,
+    fixedBody: plainObject(advanced.fixedBody)
+  });
+  const submit = await postJsonSubmit(input.fetcher ?? fetch, openAiEndpoint(provider.baseUrl, safeText(advanced.submitPath, "videos/generations")), provider.apiKeyPlain, submitPayload, input.signal, 180000);
+  const taskMeta = extractAicopyTask(submit, {
+    taskIdPath: safeText(advanced.taskIdPath, "task_id"),
+    statusPath: safeText(advanced.taskStatusPath, "status")
+  });
+  if (!taskMeta.taskId) return { status: "failed", result: { error: "AICopy 视频任务未返回 task_id", failureCategory: "invalid_provider_response", runtimeStage: "failed" } };
+  await heartbeatPatch(input, { runtimeStage: "polling", providerState: "POLLING", upstreamTaskId: taskMeta.taskId, adapter: "aicopy-video" });
+  const polled = await pollAicopyVideoTask({
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKeyPlain,
+    taskId: taskMeta.taskId,
+    statusPath: safeText(advanced.taskStatusPath || advanced.pollStatusPath, "status"),
+    resultVideoPath: safeText(advanced.resultVideoPath, "data.output"),
+    ...(Array.isArray(advanced.resultPaths) ? { resultPaths: advanced.resultPaths as string[] } : {}),
+    pollPathTemplate: safeText(advanced.pollPathTemplate, "videos/{task_id}"),
+    pollIntervalMs: clampBetween(advanced.pollIntervalMs, 500, 10000, 2000),
+    timeoutMs: Number(task.payload.timeoutMs) > 0 ? Number(task.payload.timeoutMs) : 1800000,
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    onHeartbeat: (patch) => heartbeatPatch(input, patch)
+  });
+  if (polled.videoUrls.length === 0) return { status: "failed", result: { error: "AICopy 视频任务未返回可用视频 URL", failureCategory: "empty_output", runtimeStage: "failed" } };
+  return {
+    status: "succeeded",
+    result: { videoUrls: polled.videoUrls, runtimeStage: "succeeded", providerState: "SUCCESS", videoCount: polled.videoUrls.length, upstreamTaskId: taskMeta.taskId, adapter: "aicopy-video" }
+  };
+}
+
+async function executeGeminiChatTask(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const params = plainObject(input.task.payload.input);
+  const result = await executeGeminiChat({
+    baseUrl: input.provider.baseUrl,
+    apiKey: input.provider.apiKeyPlain,
+    modelId: input.model?.modelId ?? "",
+    messages: buildChatMessages(input.task.payload.prompt, params),
+    ...(Number.isFinite(Number(params.temperature)) ? { temperature: Number(params.temperature) } : {}),
+    ...(Number.isFinite(Number(params.max_tokens ?? params.maxTokens)) ? { maxTokens: Number(params.max_tokens ?? params.maxTokens) } : {}),
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    ...(input.signal ? { signal: input.signal } : {})
+  });
+  return {
+    status: "succeeded",
+    result: { text: result.text, runtimeStage: "succeeded", providerState: "SUCCESS", adapter: result.adapter, finishReason: result.finishReason }
+  };
+}
+
 // -- shared helpers ----------------------------------------------------------
 
 async function heartbeatPatch(input: TaskExecutionInput, patch: Record<string, unknown>) {
@@ -609,9 +693,9 @@ function readStringAtPath(source: unknown, path: string): string {
   return typeof current === "string" ? current : "";
 }
 
-function toDataUrl(value: string) {
+function toDataUrl(value: string, fallbackMime = "video/mp4") {
   if (/^data:/i.test(value)) return value;
-  return `data:video/mp4;base64,${value.replace(/\s+/g, "")}`;
+  return `data:${fallbackMime};base64,${value.replace(/\s+/g, "")}`;
 }
 
 function parsePercent(value: unknown): number | undefined {

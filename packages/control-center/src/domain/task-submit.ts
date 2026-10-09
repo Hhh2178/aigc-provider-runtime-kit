@@ -10,10 +10,13 @@ import { safeLongText, safeSlug, safeText, plainObject } from "../util.js";
 
 const PROTOCOL_ADAPTER_SUPPORT = new Set([
   "openai",
+  "gemini",
+  "runninghub",
+  "volcengine",
+  "apimart",
+  "aicopy",
   "modelscope",
   "custom",
-  "runninghub",
-  "apimart",
   "grsai_draw"
 ]);
 
@@ -96,7 +99,7 @@ export async function resolveTaskSubmit(input: SubmitTaskInput, deps: TaskSubmit
     throw new TaskSubmitError(404, "模型记录不存在");
   }
   if (protocol !== "runninghub" && !PROTOCOL_ADAPTER_SUPPORT.has(protocol)) {
-    throw new TaskSubmitError(409, `协议适配器尚未移植: ${protocol}（阶段 2 将接入 apimart/aicopy/grsai 等协议）`);
+    throw new TaskSubmitError(409, `不支持的协议: ${protocol}`);
   }
   if (model && protocol !== "runninghub" && model.capability !== capability) {
     throw new TaskSubmitError(409, `模型能力 ${model.capability} 与任务类型 ${capability} 不匹配`);

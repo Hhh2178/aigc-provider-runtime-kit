@@ -61,3 +61,10 @@
 - 移植 apimart（图片+视频）、grsai_draw（图片）、modelscope（图片异步）三条生产链路，语义与 xinghuan worker 对齐（载荷映射、任务/结果提取、轮询路径模板、瞬断重试、心跳）。
 - 提交门控放行上述协议；aicopy/gemini/volcengine 仍明确 adapter_not_ported（下轮切片 B2）。
 - 测试 41 个（+9 适配器），PG 集成测试以 CC_TEST_DATABASE_URL 门控。
+
+## Update: phase 2 slice B2 delivered same-day (2026-10-09) — 九协议全覆盖
+
+- aicopy 视频（契约绑定系统完整移植）、gemini chat（generateContent 主链路）、volcengine 并入 openai 通用路（与源项目一致）；提交门控放行全 9 协议，能力门显式。
+- 任务终态回调 webhook（callbackUrl best-effort 投递）。
+- 测试 57（56 通过 + 1 PG 门控跳过）：新增全协议 executeTask 分发矩阵，全部使用 mock fetcher，验证不触达任何真实服务商；顺手修掉图片 b64 输出误用 video mime 的真实 bug。
+- 发布验证链（harness/type-check/双包测试/打包烟测）全绿。本机无 psql/docker，CC_TEST_DATABASE_URL 门控集成测试未在本地真库执行，待有 PG 的环境跑绿。

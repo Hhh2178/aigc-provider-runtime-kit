@@ -23,6 +23,12 @@ All notable changes to `aigc-provider-runtime-kit` are recorded here.
   still fail explicitly with `adapter_not_ported`.
 - PG integration test (`CC_TEST_DATABASE_URL`-gated): migrations, admin bootstrap, ciphertext roundtrip, and the
   idempotent enqueue -> claim -> heartbeat -> complete -> event-stream lifecycle.
+- Protocol adapters slice B2 completing all nine production protocols: AICopy video (request-contract bindings,
+  result/failure extraction, polling with content fallback), Gemini chat (generateContent with system instruction
+  and inline image parts), Volcengine riding the generic openai-style path per production parity. Capability gates
+  stay explicit per protocol. Best-effort terminal-state callback webhook (`payload.callbackUrl`).
+- Full-protocol dispatch matrix tests against fake upstreams (no real provider is ever contacted).
+- Fixed image b64 outputs leaking the audio `video/mp4` data-URL mime through a shared helper.
 
 ## 0.3.0 - 2026-10-09
 

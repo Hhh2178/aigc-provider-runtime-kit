@@ -62,6 +62,17 @@ Completed (2026-10-09, phase 2 slice B):
 - PG 集成测试落地（tests/integration-pg.test.mjs，设 CC_TEST_DATABASE_URL 才运行：迁移、管理员引导、
   密文往返、任务 幂等→claim→patch→complete→事件流 全链路，跑完自动清理数据）。
 
+Completed (2026-10-09, phase 2 slice B2 — 九协议全覆盖):
+- aicopy 视频：requestContract 绑定系统（SD 默认契约、嵌套 path、omitWhenEmpty、值类型转换）+ 默认映射回退 +
+  提取/失败原因（含 JSON 嵌套原因）+ 轮询与 completed 空结果时的 /videos/{id}/content 回退；
+- gemini chat：generateContent（systemInstruction/contents/generationConfig、inline 图片 data URL、
+  x-goog-api-key 鉴权、HTTPS 基址校验）；原生文件上传因中控无用户文件目录，以明确错误拒绝；
+- volcengine：与源项目一致走 openai 通用路径（advancedConfig 相对路径能力保留）；
+- 提交门控放行全部 9 种协议，能力门保持显式（gemini 仅 chat、grsai 仅 image、aicopy 仅 video/chat）；
+- 回调 webhook：任务终态（succeeded/failed）向 payload.callbackUrl 投递 JSON，best-effort 永不拖垮任务；
+- 新增 16 个测试：aicopy/gemini/回调 + 全协议 executeTask 分发矩阵（全部 mock 上游，不触达真实服务商），
+  中控测试总数 57（56 通过 + 1 PG 门控跳过）。
+
 ## Later candidate work
 
 - 成本账本与用量统计（修复源项目 RH 目录任务恒 unpriced 的问题；providerUsage 入账）。

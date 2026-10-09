@@ -51,7 +51,13 @@ src/index.ts             createControlCenter(config)：装配 + HTTP 服务
 - provider/RH 目录数据保持与源项目相同的字段语义（`rhApps/rhWorkflows/rhGroups/rhKeyPool` 存 provider 行内 JSONB），
   便于后续从旧库迁移；但表名/schema 为本项目全新中立命名（`cc_*`）。
 
+## 任务执行（阶段 2 已交付）
+
+- `POST /api/tasks` 三寻址提交 → PG SKIP LOCKED 队列 → `npm run start:worker` 执行 → `GET /api/tasks/:id` 查询/取消；
+  终态可回调 `payload.callbackUrl`（best-effort）。
+- 九种协议全覆盖（openai/gemini/runninghub/volcengine/apimart/aicopy/modelscope/custom/grsai_draw），
+  能力门按协议显式（如 gemini 仅 chat、grsai 仅 image）。执行测试全部 mock 上游，不触达真实服务商。
+
 ## Deferred（见 `docs/roadmap.md`）
 
-任务执行框架（队列/worker/物化）、成本账本、用量统计、LLM Pool、多租户 enforcement、Admin 前端 UI、
-Docker 部署物 —— 均列路线图，不属于阶段 1。
+产物物化到宿主存储、成本账本与用量统计、LLM Pool、多租户 enforcement、Admin 前端 UI、Docker 部署物。

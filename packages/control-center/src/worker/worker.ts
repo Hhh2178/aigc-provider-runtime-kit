@@ -5,6 +5,7 @@ import { createSecretCodec } from "../crypto.js";
 import { createProviderRepository } from "../repository/providers.js";
 import { createTaskRepository } from "../repository/tasks.js";
 import { executeTask } from "./execute.js";
+import { deliverTaskCallback } from "./callback.js";
 import type { TaskRecord } from "../domain/task-machine.js";
 
 export interface TaskWorkerOptions {
@@ -117,15 +118,33 @@ export function createTaskWorker(options: TaskWorkerOptions): TaskWorker {
       cleanupTaskSignal();
       if (outcome.status === "succeeded") {
         await tasks.completeTask(task.id, { ...outcome.result, attempts: task.attempts + 1 });
+        await notifyHost(task, "succeeded", outcome.result);
         return "succeeded";
       }
       await tasks.failTask(task.id, { ...outcome.result, attempts: task.attempts + 1 });
+      await notifyHost(task, "failed", outcome.result);
       return "failed";
     } catch (error) {
       cleanupTaskSignal();
       const message = error instanceof Error ? error.message.slice(0, 600) : String(error);
-      await tasks.failTask(task.id, { error: message, failureCategory: "executor_crash", runtimeStage: "failed" });
+      const failure = { error: message, failureCategory: "executor_crash", runtimeStage: "failed" };
+      await tasks.failTask(task.id, failure);
+      await notifyHost(task, "failed", failure);
       return "failed";
+    }
+  }
+
+  async function notifyHost(task: TaskRecord, status: "succeeded" | "failed", result: Record<string, unknown>) {
+    const delivery = await deliverTaskCallback(task.payload.callbackUrl, {
+      taskId: task.id,
+      status,
+      capability: task.capability,
+      providerId: task.providerId,
+      ...(task.modelRecordId ? { modelRecordId: task.modelRecordId } : {}),
+      result
+    });
+    if (delivery.attempted && !delivery.delivered) {
+      config.warn(`task ${task.id} callback delivery failed: ${delivery.error ?? delivery.status ?? "unknown"}`);
     }
   }
 
