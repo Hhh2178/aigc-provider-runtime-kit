@@ -17,6 +17,12 @@ All notable changes to `aigc-provider-runtime-kit` are recorded here.
   (apimart/aicopy/grsai/volcengine/gemini) fail explicitly with `adapter_not_ported` until the
   next slice.
 - `start:worker` npm script and config knobs (`CC_TASK_API_TOKEN`, `CC_WORKER_CONCURRENCY`).
+- Protocol adapters slice B: APIMart image/video (mapping-driven payload, task extraction, adaptive polling
+  with transient 502/503/504 retries and final-result follow-up), GRSAI image (submit/poll, SSE `data:` bodies,
+  405 GET fallback), ModelScope async image (submit/poll headers + task status polling). aicopy/gemini/volcengine
+  still fail explicitly with `adapter_not_ported`.
+- PG integration test (`CC_TEST_DATABASE_URL`-gated): migrations, admin bootstrap, ciphertext roundtrip, and the
+  idempotent enqueue -> claim -> heartbeat -> complete -> event-stream lifecycle.
 
 ## 0.3.0 - 2026-10-09
 

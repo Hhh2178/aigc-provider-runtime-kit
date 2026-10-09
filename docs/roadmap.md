@@ -50,6 +50,18 @@ Completed (2026-10-09, phase 2 slice A):
 - 提交解析层（task-submit）：providerId+modelId / modelRecordId / runninghub.catalogId 三种寻址，
   参数经 kit runtime validateProviderExecutionInput 校验，RH 必填槽校验与 nodeInfoList 映射。
 
+Completed (2026-10-09, phase 2 slice B):
+- apimart 协议全量接入：图片（images/generations 提交 + tasks/{task_id} 自适应轮询 + estimated_time 超时）与
+  视频（requestMapping/valueTypes/templates/fixedBody 载荷构建 + 提交 + resultVideoPath 轮询 + finalResult 二次查询），
+  轮询带 502/503/504 瞬断重试与心跳回写；
+- grsai_draw 图片接入：submit/poll 双端点（nano-banana 变体）、SSE `data:` 容错、405 时 GET 回退、
+  网关抖动重试、成功但缺图的显式报错；
+- modelscope 图片异步接入：提交头/轮询头（X-ModelScope-*）+ task_status 轮询；chat/audio 仍走 openai 系；
+- 提交门控放行 apimart 与 grsai_draw；aicopy/gemini/volcengine 仍为 adapter_not_ported（切片 B2）；
+- 新增 9 个适配器单测（载荷映射、任务/结果提取、轮询成功/失败、GRSAI 直出/轮询/SSE/报错）。
+- PG 集成测试落地（tests/integration-pg.test.mjs，设 CC_TEST_DATABASE_URL 才运行：迁移、管理员引导、
+  密文往返、任务 幂等→claim→patch→complete→事件流 全链路，跑完自动清理数据）。
+
 ## Later candidate work
 
 - 成本账本与用量统计（修复源项目 RH 目录任务恒 unpriced 的问题；providerUsage 入账）。

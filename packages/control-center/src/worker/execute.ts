@@ -5,6 +5,17 @@ import { parseAdvancedConfig } from "../domain/model-normalize.js";
 import { openAiEndpoint } from "../domain/provider-test.js";
 import { parseUpstreamJson, plainObject, safeText } from "../util.js";
 import type { SecretCodec } from "../crypto.js";
+import {
+  createApimartVideoAdapterPayload,
+  extractApimartTask,
+  extractDirectImageUrls as extractApimartDirectImageUrls,
+  modelScopeHeaders,
+  pollApimartImageTask,
+  pollApimartVideoTask,
+  extractModelScopeImageTask,
+  pollModelScopeImageTask
+} from "./adapters/apimart.js";
+import { createGrsaiImageClient } from "./adapters/grsai.js";
 
 export interface ProviderSecretView {
   id: string;
@@ -38,13 +49,13 @@ export class TaskAdapterNotPortedError extends Error {
   readonly protocol: string;
 
   constructor(protocol: string) {
-    super(`协议适配器尚未移植: ${protocol}（阶段 2 将接入 apimart/aicopy/grsai/volcengine/gemini）`);
+    super(`协议适配器尚未移植: ${protocol}（后续切片将接入 aicopy/volcengine/gemini）`);
     this.name = "TaskAdapterNotPortedError";
     this.protocol = protocol;
   }
 }
 
-const OPENAI_FAMILY = new Set(["openai", "modelscope", "custom"]);
+const OPENAI_FAMILY = new Set(["openai", "custom"]);
 
 /**
  * Executes one claimed task by protocol. The contract mirrors the production
@@ -57,6 +68,26 @@ export async function executeTask(input: TaskExecutionInput, codec: SecretCodec)
   try {
     if (protocol === "runninghub") {
       return await executeRunningHub(input, codec);
+    }
+    if (protocol === "grsai_draw") {
+      if (!model || model.capability !== "image") throw new Error("grsai_draw 目前仅支持图像任务");
+      return await executeGrsaiImage(input);
+    }
+    if (protocol === "apimart") {
+      if (!model) throw new Error("缺少模型记录");
+      if (model.capability === "image") return await executeApimartImage(input);
+      if (model.capability === "video") return await executeApimartVideo(input);
+      if (model.capability === "chat") return await executeOpenAiChat(input);
+      if (model.capability === "audio") return await executeOpenAiAudio(input);
+      throw new Error(`不支持的任务能力: ${model.capability}`);
+    }
+    if (protocol === "modelscope") {
+      if (!model) throw new Error("缺少模型记录");
+      if (model.capability === "image") return await executeModelScopeImage(input);
+      if (model.capability === "chat") return await executeOpenAiChat(input);
+      if (model.capability === "video") return await executeOpenAiVideo(input);
+      if (model.capability === "audio") return await executeOpenAiAudio(input);
+      throw new Error(`不支持的任务能力: ${model.capability}`);
     }
     if (OPENAI_FAMILY.has(protocol)) {
       if (!model) throw new Error("缺少模型记录");
@@ -309,6 +340,194 @@ async function executeRunningHub(input: TaskExecutionInput, codecRef: SecretCode
   }
 }
 
+
+// -- apimart / modelscope / grsai ---------------------------------------------
+
+async function executeApimartImage(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const { task, provider } = input;
+  const params = plainObject(task.payload.input);
+  const advanced = parseAdvancedConfig(input.model?.advancedConfig);
+  const images = referenceImagesFrom(params);
+  const submit = await postJsonSubmit(input.fetcher ?? fetch, openAiEndpoint(provider.baseUrl, safeText(advanced.submitPath, "images/generations")), provider.apiKeyPlain, {
+    model: input.model?.modelId,
+    prompt: String(task.payload.prompt ?? ""),
+    n: clampBetween(params.n, 1, 4, 1),
+    size: safeText(params.size, "1024x1024"),
+    ...(safeText(params.aspectRatio || params.aspect_ratio) ? { aspect_ratio: safeText(params.aspectRatio || params.aspect_ratio) } : {}),
+    ...(images.length > 0 ? { images } : {})
+  }, input.signal, 120000);
+  const directUrls = extractApimartDirectImageUrls(submit);
+  if (directUrls.length > 0) {
+    return { status: "succeeded", result: { imageUrls: directUrls, runtimeStage: "succeeded", providerState: "SUCCESS", imageCount: directUrls.length, raw: compact(submit) } };
+  }
+  const taskMeta = extractApimartTask(submit, {
+    taskIdPath: safeText(advanced.taskIdPath, "data.0.task_id"),
+    statusPath: safeText(advanced.taskStatusPath, "data.0.status")
+  });
+  if (!taskMeta.taskId) return { status: "failed", result: { error: "上游未返回可用图像", failureCategory: "empty_output", runtimeStage: "failed" } };
+  await heartbeatPatch(input, { runtimeStage: "polling", providerState: "POLLING", upstreamTaskId: taskMeta.taskId });
+  const polled = await pollApimartImageTask({
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKeyPlain,
+    taskId: taskMeta.taskId,
+    statusPath: safeText(advanced.pollStatusPath, "data.status"),
+    pollIntervalMs: clampBetween(advanced.pollIntervalMs, 500, 30000, 2500),
+    timeoutMs: clampBetween(advanced.pollTimeoutMs, 5000, 1800000, 1800000),
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    onHeartbeat: (patch) => heartbeatPatch(input, patch)
+  });
+  if (polled.imageUrls.length === 0) return { status: "failed", result: { error: "APIMart 未返回可用图像", failureCategory: "empty_output", runtimeStage: "failed" } };
+  return {
+    status: "succeeded",
+    result: { imageUrls: polled.imageUrls, runtimeStage: "succeeded", providerState: "SUCCESS", imageCount: polled.imageUrls.length, upstreamTaskId: taskMeta.taskId, adapter: "apimart-image" }
+  };
+}
+
+async function executeApimartVideo(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const { task, provider } = input;
+  const params = plainObject(task.payload.input);
+  const advanced = parseAdvancedConfig(input.model?.advancedConfig);
+  const submitPayload = createApimartVideoAdapterPayload({
+    modelId: input.model?.modelId ?? "",
+    prompt: String(task.payload.prompt ?? ""),
+    ...(safeText(params.aspectRatio) ? { ratio: safeText(params.aspectRatio) } : {}),
+    ...(params.duration !== undefined ? { duration: params.duration as string | number } : {}),
+    ...(safeText(params.resolution) ? { resolution: safeText(params.resolution) } : {}),
+    images: referenceImagesFrom(params),
+    requestMapping: plainObject(advanced.requestMapping) as Record<string, string>,
+    requestValueTypes: plainObject(advanced.requestValueTypes) as Record<string, string>,
+    requestValueTemplates: plainObject(advanced.requestValueTemplates) as Record<string, string>,
+    fixedBody: plainObject(advanced.fixedBody)
+  });
+  const submit = await postJsonSubmit(input.fetcher ?? fetch, openAiEndpoint(provider.baseUrl, safeText(advanced.submitPath, "videos/generations")), provider.apiKeyPlain, submitPayload, input.signal, 180000);
+  const taskMeta = extractApimartTask(submit, {
+    taskIdPath: safeText(advanced.taskIdPath, "data.0.task_id"),
+    statusPath: safeText(advanced.taskStatusPath, "data.0.status")
+  });
+  if (!taskMeta.taskId) return { status: "failed", result: { error: "异步视频任务未返回 task_id/id", failureCategory: "invalid_provider_response", runtimeStage: "failed" } };
+  await heartbeatPatch(input, { runtimeStage: "polling", providerState: "POLLING", upstreamTaskId: taskMeta.taskId, adapter: "apimart-video" });
+  const polled = await pollApimartVideoTask({
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKeyPlain,
+    taskId: taskMeta.taskId,
+    statusPath: safeText(advanced.taskStatusPath || advanced.pollStatusPath, "data.status"),
+    resultVideoPath: safeText(advanced.resultVideoPath, "data.result.videos"),
+    pollPathTemplate: safeText(advanced.pollPathTemplate, "tasks/{task_id}"),
+    finalResultTaskIdPath: safeText(advanced.finalResultTaskIdPath),
+    finalResultPathTemplate: safeText(advanced.finalResultPathTemplate),
+    finalResultVideoPath: safeText(advanced.finalResultVideoPath),
+    pollIntervalMs: clampBetween(advanced.pollIntervalMs, 500, 10000, 2000),
+    timeoutMs: Number(task.payload.timeoutMs) > 0 ? Number(task.payload.timeoutMs) : 1800000,
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    onHeartbeat: (patch) => heartbeatPatch(input, patch)
+  });
+  if (polled.videoUrls.length === 0) return { status: "failed", result: { error: "异步视频任务未返回可用视频 URL", failureCategory: "empty_output", runtimeStage: "failed" } };
+  return {
+    status: "succeeded",
+    result: { videoUrls: polled.videoUrls, runtimeStage: "succeeded", providerState: "SUCCESS", videoCount: polled.videoUrls.length, upstreamTaskId: taskMeta.taskId, adapter: "apimart-video" }
+  };
+}
+
+async function executeModelScopeImage(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const { task, provider } = input;
+  const params = plainObject(task.payload.input);
+  const advanced = parseAdvancedConfig(input.model?.advancedConfig);
+  const images = referenceImagesFrom(params);
+  const response = await (input.fetcher ?? fetch)(openAiEndpoint(provider.baseUrl, safeText(advanced.submitPath, "images/generations")), {
+    method: "POST",
+    headers: { ...modelScopeHeaders(provider.apiKeyPlain, "submit"), "content-type": "application/json" },
+    body: JSON.stringify({
+      model: input.model?.modelId,
+      prompt: String(task.payload.prompt ?? ""),
+      n: clampBetween(params.n, 1, 4, 1),
+      size: safeText(params.size, "1024x1024"),
+      ...(images.length > 0 ? { images } : {})
+    }),
+    ...(input.signal ? { signal: input.signal } : { signal: AbortSignal.timeout(120000) })
+  });
+  const text = await response.text();
+  if (!response.ok) return { status: "failed", result: { error: `ModelScope 图像提交失败 ${response.status}: ${text.slice(0, 300)}`, failureCategory: "upstream_failed", runtimeStage: "failed" } };
+  const raw = text ? parseUpstreamJson(text, "ModelScope 图像提交") : {};
+  const directUrls = extractApimartDirectImageUrls(raw);
+  if (directUrls.length > 0) {
+    return { status: "succeeded", result: { imageUrls: directUrls, runtimeStage: "succeeded", providerState: "SUCCESS", imageCount: directUrls.length, adapter: "modelscope-image" } };
+  }
+  const taskMeta = extractModelScopeImageTask(raw, advanced);
+  if (!taskMeta.taskId) return { status: "failed", result: { error: "ModelScope 未返回任务 ID", failureCategory: "invalid_provider_response", runtimeStage: "failed" } };
+  await heartbeatPatch(input, { runtimeStage: "polling", providerState: "POLLING", upstreamTaskId: taskMeta.taskId });
+  const polled = await pollModelScopeImageTask({
+    baseUrl: provider.baseUrl,
+    apiKey: provider.apiKeyPlain,
+    taskId: taskMeta.taskId,
+    statusPath: safeText(advanced.taskStatusPath, "task_status"),
+    pollPathTemplate: safeText(advanced.pollPathTemplate, "tasks/{task_id}"),
+    pollIntervalMs: clampBetween(advanced.pollIntervalMs, 500, 30000, 2500),
+    timeoutMs: clampBetween(advanced.pollTimeoutMs, 5000, 1800000, 1800000),
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    onHeartbeat: (patch) => heartbeatPatch(input, patch)
+  });
+  if (polled.imageUrls.length === 0) return { status: "failed", result: { error: "ModelScope 未返回可用图像", failureCategory: "empty_output", runtimeStage: "failed" } };
+  return {
+    status: "succeeded",
+    result: { imageUrls: polled.imageUrls, runtimeStage: "succeeded", providerState: "SUCCESS", imageCount: polled.imageUrls.length, upstreamTaskId: taskMeta.taskId, adapter: "modelscope-image" }
+  };
+}
+
+async function executeGrsaiImage(input: TaskExecutionInput): Promise<TaskExecutionOutcome> {
+  const { task, provider } = input;
+  const params = plainObject(task.payload.input);
+  const advanced = parseAdvancedConfig(input.model?.advancedConfig);
+  const client = createGrsaiImageClient({
+    apiKey: provider.apiKeyPlain,
+    baseUrl: provider.baseUrl,
+    ...(input.fetcher ? { fetcher: input.fetcher } : {}),
+    pollIntervalMs: clampBetween(advanced.pollIntervalMs, 200, 10000, 1500),
+    timeoutMs: clampBetween(advanced.pollTimeoutMs, 5000, 1800000, 1800000)
+  });
+  const result = await client.generate({
+    modelId: input.model?.modelId ?? "",
+    prompt: String(task.payload.prompt ?? ""),
+    ...(safeText(params.aspectRatio) ? { aspectRatio: safeText(params.aspectRatio) } : {}),
+    ...(safeText(params.size) && safeText(params.size) !== "auto" ? { size: safeText(params.size) } : {}),
+    ...(referenceImagesFrom(params).length > 0 ? { images: referenceImagesFrom(params) } : {}),
+    submitPath: safeText(advanced.submitPath),
+    pollPath: safeText(advanced.pollPath || advanced.pollPathTemplate),
+    onHeartbeat: (patch) => heartbeatPatch(input, { ...patch, adapter: "grsai-image" })
+  });
+  if (result.imageUrls.length === 0) {
+    return { status: "failed", result: { error: "GRSAI 未返回图片", failureCategory: "empty_output", runtimeStage: "failed" } };
+  }
+  return {
+    status: "succeeded",
+    result: { imageUrls: result.imageUrls, runtimeStage: "succeeded", providerState: "SUCCESS", imageCount: result.imageUrls.length, upstreamTaskId: safeText(result.taskId), adapter: "grsai-image" }
+  };
+}
+
+async function postJsonSubmit(fetcher: typeof fetch, url: string, apiKey: string, body: unknown, signal: AbortSignal | undefined, timeoutMs: number): Promise<Record<string, unknown>> {
+  const response = await fetcher(url, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      authorization: apiKey ? (apiKey.startsWith("Bearer") ? apiKey : `Bearer ${apiKey}`) : ""
+    },
+    body: JSON.stringify(body),
+    ...(signal ? { signal } : { signal: AbortSignal.timeout(timeoutMs) })
+  });
+  const text = await response.text();
+  if (!response.ok) throw new Error(`上游请求失败 ${response.status}: ${text.slice(0, 500)}`);
+  return text ? (parseUpstreamJson(text, "上游提交接口") as Record<string, unknown>) : {};
+}
+
+function referenceImagesFrom(params: Record<string, unknown>): string[] {
+  const source = Array.isArray(params.images) ? params.images : Array.isArray(params.referenceImages) ? params.referenceImages : [];
+  return source.map((item) => safeText(item)).filter(Boolean).slice(0, 16);
+}
+
+function clampBetween(value: unknown, min: number, max: number, fallback: number) {
+  const numeric = Number(value);
+  if (!Number.isFinite(numeric)) return fallback;
+  return Math.max(min, Math.min(max, Math.floor(numeric)));
+}
 
 // -- shared helpers ----------------------------------------------------------
 

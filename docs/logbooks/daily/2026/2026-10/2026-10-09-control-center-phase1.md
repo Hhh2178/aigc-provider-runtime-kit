@@ -55,3 +55,9 @@
 - 新增 32 个中控测试（task-machine/task-submit/suite 合计 32）。
 - Next: 适配器全量移植（apimart/grsai/aicopy 优先）+ PG 集成测试（CC_TEST_DATABASE_URL 触发）。
 
+
+## Update: phase 2 slice B delivered same-day (2026-10-09)
+
+- 移植 apimart（图片+视频）、grsai_draw（图片）、modelscope（图片异步）三条生产链路，语义与 xinghuan worker 对齐（载荷映射、任务/结果提取、轮询路径模板、瞬断重试、心跳）。
+- 提交门控放行上述协议；aicopy/gemini/volcengine 仍明确 adapter_not_ported（下轮切片 B2）。
+- 测试 41 个（+9 适配器），PG 集成测试以 CC_TEST_DATABASE_URL 门控。

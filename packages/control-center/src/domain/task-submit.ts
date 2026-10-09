@@ -12,7 +12,9 @@ const PROTOCOL_ADAPTER_SUPPORT = new Set([
   "openai",
   "modelscope",
   "custom",
-  "runninghub"
+  "runninghub",
+  "apimart",
+  "grsai_draw"
 ]);
 
 export interface SubmitTaskInput {
