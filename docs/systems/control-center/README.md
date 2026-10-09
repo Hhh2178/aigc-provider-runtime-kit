@@ -58,6 +58,16 @@ src/index.ts             createControlCenter(config)：装配 + HTTP 服务
 - 九种协议全覆盖（openai/gemini/runninghub/volcengine/apimart/aicopy/modelscope/custom/grsai_draw），
   能力门按协议显式（如 gemini 仅 chat、grsai 仅 image）。执行测试全部 mock 上游，不触达真实服务商。
 
+## 管理与运营（阶段 3 已交付）
+
+- 内置控制台 `GET /admin`：无构建静态页面（登录/服务商/模型/任务/定价与成本），数据调用仍走受保护 API。
+- 产物物化：`CC_STORAGE_DIR` 开启后任务成功即下载远端产物并返回 `materialized*Urls`，
+  `GET /api/tasks/:taskId/files/:filename` 提供防穿越文件服务（与任务 API 同一令牌/会话网关）。
+- 成本账本：`cc_model_pricing`（model/rh_target）+ `cc_task_cost_items`；worker 成功路径自动计费
+  （per_request / per_second / 上游 consumeMoney 优先），管理 API：`/api/admin/pricing*`、
+  `/api/admin/costs/summary`。rh_target 范围让 RH 目录任务可计价。
+- 测试：单元 71 + embedded-postgres 真库集成（`CC_TEST_SKIP_PG=1` 可关闭）。
+
 ## Deferred（见 `docs/roadmap.md`）
 
 产物物化到宿主存储、成本账本与用量统计、LLM Pool、多租户 enforcement、Admin 前端 UI、Docker 部署物。

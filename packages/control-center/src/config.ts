@@ -18,6 +18,11 @@ export interface ControlCenterConfig {
   taskApiToken: string;
   /** Default worker claim slot count when started via createTaskWorker. */
   workerConcurrency: number;
+  /**
+   * Optional local directory for materialized outputs. Empty disables
+   * materialization (remote URLs are returned as-is).
+   */
+  storageDir: string;
   log: (message: string) => void;
   warn: (message: string) => void;
 }
@@ -43,6 +48,7 @@ export function readConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Control
     tenantId: String(env.CC_TENANT_ID || "default").trim().slice(0, 80) || "default",
     taskApiToken: String(env.CC_TASK_API_TOKEN || "").trim(),
     workerConcurrency: clampNumber(Number(env.CC_WORKER_CONCURRENCY ?? 4), 1, 64, 4),
+    storageDir: String(env.CC_STORAGE_DIR || "").trim(),
     log: (message: string) => console.log(message),
     warn: (message: string) => console.warn(message)
   };

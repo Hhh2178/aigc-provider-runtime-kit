@@ -73,6 +73,19 @@ Completed (2026-10-09, phase 2 slice B2 — 九协议全覆盖):
 - 新增 16 个测试：aicopy/gemini/回调 + 全协议 executeTask 分发矩阵（全部 mock 上游，不触达真实服务商），
   中控测试总数 57（56 通过 + 1 PG 门控跳过）。
 
+Completed (2026-10-09, phase 3 — 管理收尾):
+- 真库集成测试自托管：embedded-postgres 自动启动（Windows 中文 locale 的 initdb post-bootstrap 会被 GBK 字节
+  打断，以 --no-clean 保留 bootstrap 完成的集群继续使用，已在夹具中固化该 fallback），集成测试 7/7 全绿，
+  覆盖迁移幂等/管理员引导/密文往返/幂等领取互斥/stale 重排/定价与成本全链路；
+- 产物物化：CC_STORAGE_DIR 开启后 worker 下载远端产物（512MiB 上限、失败保留远程地址并记 warning）、
+  写入 materialized*Urls，经 GET /api/tasks/:taskId/files/:filename 提供防目录穿越的文件服务；
+- 成本账本：cc_model_pricing（model/rh_target 双范围）+ cc_task_cost_items（唯一 task 索引），成功任务自动计费
+  （per_request/per_second/上游 providerUsage.consumeMoney 优先），管理 API（定价 CRUD + 成本汇总），
+  rh_target 范围修复了源项目 RH 目录任务恒 unpriced 的问题；
+- 内置管理控制台：GET /admin 无构建纯静态页面（登录/服务商/模型/任务轮询/定价与成本），框架中立，
+  页面不含任何特权数据，全部数据调用仍走受保护的管理 API；
+- 中控测试总数 71（含真库集成），全量并发 3 连绿。
+
 ## Later candidate work
 
 - 成本账本与用量统计（修复源项目 RH 目录任务恒 unpriced 的问题；providerUsage 入账）。

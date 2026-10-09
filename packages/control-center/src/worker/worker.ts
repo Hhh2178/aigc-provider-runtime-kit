@@ -6,6 +6,8 @@ import { createProviderRepository } from "../repository/providers.js";
 import { createTaskRepository } from "../repository/tasks.js";
 import { executeTask } from "./execute.js";
 import { deliverTaskCallback } from "./callback.js";
+import { materializeTaskOutputs } from "./materialize.js";
+import { createPricingRepository } from "../repository/pricing.js";
 import type { TaskRecord } from "../domain/task-machine.js";
 
 export interface TaskWorkerOptions {
@@ -37,6 +39,7 @@ export function createTaskWorker(options: TaskWorkerOptions): TaskWorker {
   const codec = createSecretCodec(config.secretKey);
   const providers = createProviderRepository(database.pool, codec, config.tenantId);
   const tasks = createTaskRepository(database.pool, config.tenantId);
+  const costs = createPricingRepository(database.pool, config.tenantId);
 
   let stopping = false;
   let lastReaperAt = 0;
@@ -117,8 +120,32 @@ export function createTaskWorker(options: TaskWorkerOptions): TaskWorker {
       );
       cleanupTaskSignal();
       if (outcome.status === "succeeded") {
-        await tasks.completeTask(task.id, { ...outcome.result, attempts: task.attempts + 1 });
-        await notifyHost(task, "succeeded", outcome.result);
+        let finalResult: Record<string, unknown> = { ...outcome.result, attempts: task.attempts + 1 };
+        if (config.storageDir) {
+          try {
+            const materialized = await materializeTaskOutputs(finalResult, { storageDir: config.storageDir, taskId: task.id });
+            finalResult = { ...materialized.result, attempts: task.attempts + 1 };
+            if (materialized.warnings.length > 0) finalResult.materializeWarnings = materialized.warnings;
+          } catch (error) {
+            config.warn(`materialization skipped for ${task.id}: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+        try {
+          const cost = await costs.recordTaskCost({
+            id: task.id,
+            providerId: task.providerId,
+            modelRecordId: task.modelRecordId,
+            payload: task.payload,
+            result: finalResult
+          });
+          if (cost) {
+            finalResult.cost = { amount: cost.amount, quantity: cost.quantity, billedSource: cost.billedSource, currency: cost.currency, costId: cost.costId };
+          }
+        } catch (error) {
+          config.warn(`cost recording failed for ${task.id}: ${error instanceof Error ? error.message : String(error)}`);
+        }
+        await tasks.completeTask(task.id, finalResult);
+        await notifyHost(task, "succeeded", finalResult);
         return "succeeded";
       }
       await tasks.failTask(task.id, { ...outcome.result, attempts: task.attempts + 1 });

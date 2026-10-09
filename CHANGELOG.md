@@ -28,6 +28,11 @@ All notable changes to `aigc-provider-runtime-kit` are recorded here.
   and inline image parts), Volcengine riding the generic openai-style path per production parity. Capability gates
   stay explicit per protocol. Best-effort terminal-state callback webhook (`payload.callbackUrl`).
 - Full-protocol dispatch matrix tests against fake upstreams (no real provider is ever contacted).
+- Phase-3 management completion: self-hosted embedded-postgres integration suite (real database, 7 assertions
+  covering migrations, auth, ciphertext roundtrip, exclusive claim, stale requeue, pricing and cost ledger),
+  optional output materialization (CC_STORAGE_DIR + traversal-safe file serving), cost ledger (model and
+  rh_target pricing scopes, per_request/per_second/provider-usage billing, admin pricing CRUD + cost summary —
+  fixing RH catalog tasks that could never be priced before), and a no-build built-in admin console at /admin.
 - Fixed image b64 outputs leaking the audio `video/mp4` data-URL mime through a shared helper.
 
 ## 0.3.0 - 2026-10-09

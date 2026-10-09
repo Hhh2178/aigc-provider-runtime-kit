@@ -61,7 +61,7 @@ export function createTaskRepository(executor: SqlExecutor, tenantId: string): T
     async enqueueTask(input) {
       const id = `task-${Date.now().toString(36)}-${randomUUID().slice(0, 8)}`;
       if (input.idempotencyKey) {
-        const existing = await this.findTaskByIdempotencyKey(`${tenantId}:${input.idempotencyKey}`);
+        const existing = await this.findTaskByIdempotencyKey(input.idempotencyKey);
         if (existing) return existing;
       }
       let result: Record<string, unknown> = {};

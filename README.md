@@ -71,9 +71,9 @@ CC_PORT=8787 \
 node packages/control-center/dist/index.js
 ```
 
-启动后（`/healthz` 可用）：
+启动后（`/healthz` 可用；打开 `http://localhost:8787/admin` 即可使用内置管理控制台——登录、服务商、模型、任务轮询与定价成本一页搞定）：
 
-1. `POST /api/auth/admin-login` 登录（默认 `admin@localhost` / `control-center-admin`；生产务必设置 `CC_ADMIN_EMAIL` / `CC_ADMIN_PASSWORD` / `CC_SECRET_KEY`，全部环境变量见 `packages/control-center/src/config.ts`）。
+1. `POST /api/auth/admin-login` 登录（默认 `admin@localhost` / `control-center-admin`；生产务必设置 `CC_ADMIN_EMAIL` / `CC_ADMIN_PASSWORD` / `CC_SECRET_KEY`，全部环境变量见 `packages/control-center/src/config.ts`；可选 `CC_TASK_API_TOKEN`（宿主任务令牌）、`CC_STORAGE_DIR`（产物物化目录）、`CC_WORKER_CONCURRENCY`、`CC_CORS_ORIGIN`）。
 2. `POST /api/admin/providers` 录入服务商 → `POST /api/admin/providers/probe` 连通测试 → `POST /api/admin/providers/:id/fetch-models` 拉取上游模型 → `POST /api/admin/providers/:id/import-models` 批量导入。
 3. `POST /api/admin/models/:id/test` 分能力连通测试（chat/理解类/语音类真实调用；图像生成测试需 `confirmCost: true`，防误烧 credits）。
 4. RunningHub：`POST /api/admin/runninghub/analyze` 从文档/示例生成条目草案，`POST|PATCH|DELETE /api/admin/runninghub/items(.…/test)` 维护条目与分组，`GET|PUT|DELETE /api/admin/providers/:id/runninghub/key-pool[/:keyId]` 管理 key 池。

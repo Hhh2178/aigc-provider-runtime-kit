@@ -137,5 +137,46 @@ create index if not exists idx_cc_tasks_tenant on cc_tasks(tenant_id, created_at
 create index if not exists idx_cc_tasks_claim on cc_tasks(status, id) where status = 'queued';
 create index if not exists idx_cc_task_events_task on cc_task_events(task_id, created_at);
 `
+  },
+  {
+    id: "003_costs.sql",
+    sql: `
+create table if not exists cc_model_pricing (
+  id text primary key,
+  tenant_id text not null default 'default',
+  scope text not null check (scope in ('model', 'rh_target')),
+  provider_id text not null,
+  model_record_id text not null default '',
+  run_target_id text not null default '',
+  kind text not null default 'per_request' check (kind in ('per_request', 'per_second')),
+  unit_price numeric(18,6) not null default 0,
+  per_second_price numeric(18,6) not null default 0,
+  currency text not null default 'CNY',
+  enabled boolean not null default true,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists cc_task_cost_items (
+  id text primary key,
+  task_id text not null references cc_tasks(id) on delete cascade,
+  tenant_id text not null default 'default',
+  provider_id text not null,
+  model_record_id text not null default '',
+  run_target_id text not null default '',
+  pricing_id text not null default '',
+  pricing_kind text not null default '',
+  billed_source text not null default 'per_request',
+  quantity numeric(18,6) not null default 1,
+  unit_price numeric(18,6) not null default 0,
+  amount numeric(18,6) not null default 0,
+  currency text not null default 'CNY',
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists idx_cc_pricing_lookup on cc_model_pricing(tenant_id, scope, provider_id, model_record_id, run_target_id);
+create unique index if not exists idx_cc_cost_task on cc_task_cost_items(task_id);
+create index if not exists idx_cc_cost_created on cc_task_cost_items(created_at desc);
+`
   }
 ];

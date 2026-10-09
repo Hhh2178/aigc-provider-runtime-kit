@@ -4,6 +4,7 @@ import { createDatabase, type ControlCenterDatabase } from "./db.js";
 import { createSecretCodec, type SecretCodec } from "./crypto.js";
 import { createProviderRepository, type ProviderRepository } from "./repository/providers.js";
 import { createTaskRepository, type TaskRepository } from "./repository/tasks.js";
+import { createPricingRepository, type PricingRepositoryShape } from "./repository/pricing.js";
 import { createAuditRepository, createAuditReader } from "./repository/audit.js";
 import { createAuthRepository, type AuthRepository, type AdminUserRecord } from "./repository/auth.js";
 import { createRunningHubCatalogService, type RhCatalogService } from "./domain/runninghub/service.js";
@@ -16,11 +17,15 @@ import { registerProviderAdminRoutes } from "./routes/providers.js";
 import { registerModelAdminRoutes } from "./routes/models.js";
 import { registerRunningHubAdminRoutes } from "./routes/runninghub.js";
 import { registerTaskRoutes } from "./routes/tasks.js";
+import { registerFileRoutes } from "./routes/files.js";
+import { registerPricingRoutes } from "./routes/pricing.js";
+import { registerAdminUiRoutes } from "./routes/admin-ui.js";
 import { readBearerToken } from "./http.js";
 
 export interface ControlCenterServices {
   repository: ProviderRepository;
   tasks: TaskRepository;
+  pricing: PricingRepositoryShape;
   auth: AuthRepository;
   appendAudit: (actor: AdminUserRecord, action: string, targetType: string, targetId: string, summary: string, requestContext: RequestBrief) => Promise<void>;
   readAuditLogs: (options?: { limit?: number; action?: string }) => Promise<Record<string, unknown>[]>;
@@ -58,11 +63,12 @@ export async function createControlCenter(config: ControlCenterConfig, options: 
   const auth = createAuthRepository(executor);
   const repository = createProviderRepository(executor, codec, config.tenantId);
   const tasks = createTaskRepository(executor, config.tenantId);
+  const pricing = createPricingRepository(executor, config.tenantId);
   const appendAudit = createAuditRepository(executor);
   const readAuditLogs = createAuditReader(executor);
   const runningHub = createRunningHubCatalogService(repository);
 
-  const services: ControlCenterServices = { repository, tasks, auth, appendAudit, readAuditLogs, runningHub, codec };
+  const services: ControlCenterServices = { repository, tasks, pricing, auth, appendAudit, readAuditLogs, runningHub, codec };
 
   if (config.bootstrapOnStart) {
     const admin = await auth.ensureBootstrapAdmin({ email: config.adminEmail, password: config.adminPassword });
@@ -71,6 +77,7 @@ export async function createControlCenter(config: ControlCenterConfig, options: 
 
   const router = new Router();
   registerMetaRoutes(router, { config });
+  registerAdminUiRoutes(router);
   registerAuthRoutes(router, { config, services });
   // Admin routes assume the /api/admin/* gateway already enforced the session.
   registerProviderAdminRoutes(router, { config, services });
@@ -78,6 +85,8 @@ export async function createControlCenter(config: ControlCenterConfig, options: 
   registerRunningHubAdminRoutes(router, { config, services });
   // /api/tasks* requires either the machine token (CC_TASK_API_TOKEN) or an admin session.
   registerTaskRoutes(router, { config, services });
+  registerFileRoutes(router, { config });
+  registerPricingRoutes(router, { config, services });
 
   const server = createServer((request, response) => {
     void handleRequest(request, response);
