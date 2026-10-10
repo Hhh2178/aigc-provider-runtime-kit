@@ -103,9 +103,10 @@ export function createPricingRepository(executor: SqlExecutor, tenantId: string)
     },
     async costSummary(options: { since?: number | undefined; until?: number | undefined; limit?: number | undefined } = {}) {
       const since = options.since ? new Date(options.since) : new Date(Date.now() - 30 * 24 * 3600_000);
-      // JS Date is millisecond-precision while created_at stores microseconds;
-      // widen the upper bound inclusively so same-millisecond rows are never dropped.
-      const until = new Date((options.until ?? Date.now()) + 1);
+      // Postgres clocks (especially on Windows, where the server derives time from a
+      // coarse OS source) can sit slightly ahead of the JS clock; widen the default
+      // upper bound so freshly written rows are never excluded from their own summary.
+      const until = new Date(options.until ? options.until + 1 : Date.now() + 2000);
       const rows = await executor.query(
         `select date_trunc('day', created_at) as day, provider_id, run_target_id, billed_source, currency,
                 sum(amount) as amount, count(*) as tasks
