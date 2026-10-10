@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtemp, readFile, rm, readdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, sep } from "node:path";
+import { join, resolve } from "node:path";
 import { materializeTaskOutputs, resolveServedFile, mimeTypeFor } from "@aigc-kit/control-center/worker/materialize";
 
 function bytesFetcher(payload, status = 200) {
@@ -58,13 +58,14 @@ test("failed or oversized downloads keep remote URLs with warnings", async (t) =
 });
 
 test("traversal-resistant path resolution", () => {
-  assert.ok(resolveServedFile("C:/storage", "task-1", "1-a.png")?.endsWith(join("task-1", "1-a.png")));
-  assert.equal(resolveServedFile("C:/storage", "task-1", "../secret.txt"), null);
-  assert.equal(resolveServedFile("C:/storage", "task-1", "sub/../../x"), null);
-  const oddTask = resolveServedFile("C:/storage", "task/../1", "a.png");
+  const root = resolve("C:/storage");
+  assert.ok(resolveServedFile(root, "task-1", "1-a.png")?.endsWith(join("task-1", "1-a.png")));
+  assert.equal(resolveServedFile(root, "task-1", "../secret.txt"), null);
+  assert.equal(resolveServedFile(root, "task-1", "sub/../../x"), null);
+  const oddTask = resolveServedFile(root, "task/../1", "a.png");
   assert.ok(oddTask && oddTask.includes("task_.._1"), "odd ids are sanitized into a single safe segment");
-  assert.ok(oddTask.startsWith("C:" + sep + "storage" + sep), "still inside the storage root");
-  assert.equal(resolveServedFile("C:/storage", "task-1", ".."), null);
+  assert.ok(oddTask.startsWith(root), "still inside the storage root");
+  assert.equal(resolveServedFile(root, "task-1", ".."), null);
 });
 
 test("mimeTypeFor covers media types", () => {
