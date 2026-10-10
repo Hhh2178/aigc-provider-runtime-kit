@@ -29,7 +29,8 @@
     "harness:verify:project": "npm run verify:harness",
     "harness:verify:workspace": "npm run type-check && npm test",
     "harness:verify:release": "npm run verify:harness && npm run type-check && npm test && npm run test:package",
-    "prepack": "npm run build -w aigc-provider-runtime-kit"
+    "prepack": "npm run build -w aigc-provider-runtime-kit",
+    "test:ci": "node scripts/run-tests-annotated.mjs"
   },
   "allowScripts": {
     "@embedded-postgres/windows-x64@18.4.0-beta.17": true

@@ -86,7 +86,7 @@ for (const token of [".env", "*.pem", "*.key"]) {
 }
 
 const ci = existsSync(join(root, ".github/workflows/ci.yml")) ? readFileSync(join(root, ".github/workflows/ci.yml"), "utf8") : "";
-for (const command of ["npm ci", "npm run harness:verify:project", "npm run type-check", "npm test", "npm run test:package"]) {
+for (const command of ["npm ci", "npm run harness:verify:project", "npm run type-check", "npm run test:ci", "npm run test:package"]) {
   if (!ci.includes(command)) failures.push(`CI missing command: ${command}`);
 }
 
